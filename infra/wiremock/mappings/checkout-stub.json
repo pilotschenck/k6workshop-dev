@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/checkout"
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "orderId": "stub-ord-999",
+      "total": 149.99,
+      "status": "confirmed"
+    }
+  }
+}

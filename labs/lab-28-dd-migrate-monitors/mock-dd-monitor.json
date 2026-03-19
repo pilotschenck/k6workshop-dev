@@ -1,0 +1,47 @@
+{
+  "id": 98234602,
+  "name": "P95 latency high - express API (prod)",
+  "type": "metric alert",
+  "query": "avg(last_5m):avg:trace.express.request.duration.by.resource_name.95p{env:prod,service:api-gateway} > 2000",
+  "message": "{{#is_alert}}\nP95 request latency for the API Gateway in **prod** has exceeded 2000ms.\n\nCurrent value: {{value}}ms  \nThreshold: {{threshold}}ms\n\nDashboard: https://app.datadoghq.com/apm/services/api-gateway\nRunbook: https://wiki.example.com/runbooks/high-latency\n\n@pagerduty-platform-critical @slack-sre-alerts\n{{/is_alert}}\n\n{{#is_warning}}\nP95 request latency for the API Gateway in **prod** is elevated (above 1500ms).\n\nCurrent value: {{value}}ms\n\n@slack-sre-alerts\n{{/is_warning}}\n\n{{#is_recovery}}\nP95 latency for the API Gateway has recovered below threshold.\n{{/is_recovery}}",
+  "tags": [
+    "env:prod",
+    "service:api-gateway",
+    "team:platform",
+    "severity:p2",
+    "managed-by:terraform"
+  ],
+  "options": {
+    "notify_no_data": true,
+    "no_data_timeframe": 10,
+    "notify_audit": false,
+    "renotify_interval": 60,
+    "renotify_statuses": ["alert"],
+    "escalation_message": "Latency is still high — escalating to on-call lead. @pagerduty-platform-critical",
+    "timeout_h": 0,
+    "include_tags": true,
+    "require_full_window": false,
+    "thresholds": {
+      "critical": 2000.0,
+      "warning": 1500.0,
+      "critical_recovery": 1800.0,
+      "warning_recovery": 1200.0
+    },
+    "evaluation_delay": 60,
+    "new_group_delay": 60,
+    "silenced": {}
+  },
+  "priority": 2,
+  "restricted_roles": null,
+  "overall_state": "OK",
+  "overall_state_modified": "2025-03-10T08:14:22.000000+00:00",
+  "created": "2024-07-22T11:05:44.000000+00:00",
+  "modified": "2025-02-14T16:30:09.000000+00:00",
+  "creator": {
+    "handle": "jane.doe@example.com",
+    "name": "Jane Doe",
+    "id": 1024
+  },
+  "matching_downtimes": [],
+  "deleted": null
+}

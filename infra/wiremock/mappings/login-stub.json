@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/login"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "token": "stub-token-abc123",
+      "userId": 42
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/api/products"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": [
+      {
+        "id": 1,
+        "name": "Wireless Headphones",
+        "price": 79.99,
+        "category": "Electronics",
+        "stock": 142,
+        "description": "Over-ear noise cancelling wireless headphones with 30hr battery life"
+      },
+      {
+        "id": 2,
+        "name": "Mechanical Keyboard",
+        "price": 129.99,
+        "category": "Electronics",
+        "stock": 58,
+        "description": "Tenkeyless mechanical keyboard with Cherry MX Brown switches"
+      },
+      {
+        "id": 3,
+        "name": "Ergonomic Mouse",
+        "price": 49.99,
+        "category": "Electronics",
+        "stock": 215,
+        "description": "Vertical ergonomic mouse with adjustable DPI and USB-C charging"
+      },
+      {
+        "id": 4,
+        "name": "USB-C Hub",
+        "price": 34.99,
+        "category": "Accessories",
+        "stock": 330,
+        "description": "7-in-1 USB-C hub with HDMI 4K, 3x USB-A, SD card reader, and 100W PD"
+      },
+      {
+        "id": 5,
+        "name": "Laptop Stand",
+        "price": 39.99,
+        "category": "Accessories",
+        "stock": 88,
+        "description": "Adjustable aluminium laptop stand compatible with 10-17 inch laptops"
+      }
+    ]
+  }
+}

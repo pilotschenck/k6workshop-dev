@@ -1,0 +1,10 @@
+node_modules/
+.env
+*.log
+k6-results/
+tmp/
+.DS_Store
+memory/
+screenshots/
+summary.md
+results.json

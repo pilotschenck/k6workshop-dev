@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# NOTE: k6 prometheus-rw remote write configuration
+# When using the k6 Prometheus Remote Write output, k6 pushes metrics directly
+# to Prometheus via the remote_write endpoint. Configure this in your k6 script
+# or via the K6_PROMETHEUS_RW_SERVER_URL environment variable:
+#
+#   K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
+#
+# You must also enable the remote_write receiver in Prometheus by starting it
+# with the --web.enable-remote-write-receiver flag. No changes to this file
+# are required for k6 remote write support.
+
+scrape_configs:
+  - job_name: k6
+    static_configs:
+      - targets:
+          - localhost:9090
