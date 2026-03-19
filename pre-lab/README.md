@@ -85,7 +85,7 @@ k6 version
 Expected output (version number will vary):
 
 ```
-k6 v0.55.0 (go1.23.4, linux/amd64)
+k6 v0.54.0 (go1.23.1, linux/amd64)
 ```
 
 If the command is not found, ensure the k6 binary location is included in your `PATH` environment variable.
