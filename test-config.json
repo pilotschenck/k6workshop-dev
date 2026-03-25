@@ -1,0 +1,235 @@
+{
+  "tests": [
+    {
+      "id": "lab-01",
+      "name": "Lab 01: First k6 Script",
+      "script": "scripts/solutions/lab-01-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "timeout": 60,
+      "enabled": true
+    },
+    {
+      "id": "lab-02",
+      "name": "Lab 02: Checks and Thresholds",
+      "script": "scripts/solutions/lab-02-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "timeout": 60,
+      "enabled": true
+    },
+    {
+      "id": "lab-03",
+      "name": "Lab 03: VU Stages",
+      "script": "scripts/solutions/lab-03-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "timeout": 90,
+      "enabled": true
+    },
+    {
+      "id": "lab-04",
+      "name": "Lab 04: Groups and Tags",
+      "script": "scripts/solutions/lab-04-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "timeout": 60,
+      "enabled": true
+    },
+    {
+      "id": "lab-05",
+      "name": "Lab 05: Parameterization",
+      "script": "scripts/solutions/lab-05-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "timeout": 60,
+      "enabled": true
+    },
+    {
+      "id": "lab-06",
+      "name": "Lab 06: InfluxDB Output",
+      "script": "scripts/solutions/lab-06-solution.js",
+      "services": ["demo-app", "influxdb", "grafana"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "k6Args": ["--out", "influxdb=http://localhost:8086/k6"],
+      "timeout": 90,
+      "enabled": true
+    },
+    {
+      "id": "lab-07",
+      "name": "Lab 07: Prometheus Output",
+      "script": "scripts/solutions/lab-07-solution.js",
+      "services": ["demo-app", "prometheus"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "k6Args": ["--out", "experimental-prometheus-rw"],
+      "timeout": 90,
+      "enabled": true
+    },
+    {
+      "id": "lab-08",
+      "name": "Lab 08: JSON Output",
+      "script": "scripts/solutions/lab-08-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "k6Args": ["--out", "json=results/lab-08-results.json"],
+      "setup": ["mkdir -p results"],
+      "timeout": 60,
+      "enabled": true
+    },
+    {
+      "id": "lab-09",
+      "name": "Lab 09: Grafana Cloud Integration",
+      "script": "scripts/solutions/lab-09-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "requiresGrafanaCloud": true,
+      "timeout": 60,
+      "enabled": false,
+      "skipReason": "Requires Grafana Cloud credentials"
+    },
+    {
+      "id": "lab-13",
+      "name": "Lab 13: Workflow Checks",
+      "script": "scripts/solutions/lab-13-solution.js",
+      "services": [],
+      "requiresGrafanaCloud": true,
+      "timeout": 60,
+      "enabled": false,
+      "skipReason": "Requires Grafana Cloud Synthetic Monitoring"
+    },
+    {
+      "id": "lab-14",
+      "name": "Lab 14: Browser Intro",
+      "script": "scripts/solutions/lab-14-solution.js",
+      "services": ["httpbin"],
+      "env": {
+        "K6_BROWSER_HEADLESS": "true"
+      },
+      "setup": ["mkdir -p screenshots"],
+      "timeout": 60,
+      "enabled": true
+    },
+    {
+      "id": "lab-15",
+      "name": "Lab 15: Browser Interactions",
+      "script": "scripts/solutions/lab-15-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "K6_BROWSER_HEADLESS": "true",
+        "BASE_URL": "http://localhost:3000"
+      },
+      "setup": ["mkdir -p screenshots"],
+      "timeout": 90,
+      "enabled": true
+    },
+    {
+      "id": "lab-16",
+      "name": "Lab 16: Mixed Load/Browser Tests",
+      "script": "scripts/solutions/lab-16-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "K6_BROWSER_HEADLESS": "true",
+        "BASE_URL": "http://localhost:3000"
+      },
+      "setup": ["mkdir -p screenshots"],
+      "timeout": 90,
+      "enabled": true
+    },
+    {
+      "id": "lab-17",
+      "name": "Lab 17: Browser Synthetics",
+      "script": "scripts/solutions/lab-17-solution.js",
+      "services": [],
+      "requiresGrafanaCloud": true,
+      "timeout": 60,
+      "enabled": false,
+      "skipReason": "Requires Grafana Cloud Synthetic Monitoring"
+    },
+    {
+      "id": "lab-18",
+      "name": "Lab 18: OpenTelemetry Tracing",
+      "script": "scripts/solutions/lab-18-solution.js",
+      "services": ["demo-app", "otel-collector", "jaeger"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "timeout": 60,
+      "enabled": true
+    },
+    {
+      "id": "lab-19",
+      "name": "Lab 19: Structured Logging",
+      "script": "scripts/solutions/lab-19-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "timeout": 60,
+      "enabled": true
+    },
+    {
+      "id": "lab-20",
+      "name": "Lab 20: Custom Metrics",
+      "script": "scripts/solutions/lab-20-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "timeout": 60,
+      "enabled": true
+    },
+    {
+      "id": "lab-21",
+      "name": "Lab 21: Extensions",
+      "script": "scripts/solutions/lab-21-solution.js",
+      "services": ["demo-app"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "timeout": 60,
+      "enabled": true,
+      "notes": "May require k6 extension to be built"
+    },
+    {
+      "id": "lab-27",
+      "name": "Lab 27: DataDog Test Migration",
+      "script": "scripts/solutions/lab-27-solution.js",
+      "services": ["demo-app", "fake-dd-agent"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "timeout": 60,
+      "enabled": true
+    },
+    {
+      "id": "lab-29",
+      "name": "Lab 29: End-to-End Observability",
+      "script": "scripts/solutions/lab-29-solution.js",
+      "services": ["demo-app", "influxdb", "grafana"],
+      "env": {
+        "BASE_URL": "http://localhost:3000"
+      },
+      "k6Args": ["--out", "influxdb=http://localhost:8086/k6"],
+      "timeout": 90,
+      "enabled": true
+    }
+  ]
+}

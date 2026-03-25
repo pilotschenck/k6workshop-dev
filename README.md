@@ -28,6 +28,28 @@ Grafana dashboard: [http://localhost:3030](http://localhost:3030)
 
 ---
 
+## Testing Lab Solutions
+
+An automated test harness is available to validate all lab solution scripts:
+
+```bash
+# Run all tests (start infrastructure, run tests, stop infrastructure)
+./test-labs.sh --start-infra --stop-infra
+
+# List all available tests
+./test-labs.sh --list
+
+# Run specific labs only
+./test-labs.sh --filter="lab-0[1-5]"
+
+# Run with verbose output for debugging
+./test-labs.sh --verbose
+```
+
+See **[TESTING.md](TESTING.md)** for complete documentation on the test harness, CI/CD integration, and troubleshooting.
+
+---
+
 ## Module Overview
 
 | # | Module | Description |
