@@ -7,8 +7,8 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-  jaeger:
-    endpoint: jaeger:14250
+  otlp/jaeger:
+    endpoint: jaeger:4317
     tls:
       insecure: true
   logging:
@@ -20,5 +20,5 @@ service:
       receivers:
         - otlp
       exporters:
-        - jaeger
+        - otlp/jaeger
         - logging
