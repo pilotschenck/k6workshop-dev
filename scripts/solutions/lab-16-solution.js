@@ -101,7 +101,7 @@ export async function browserTest() {
 
   try {
     // Navigate to the demo app homepage
-    await page.goto('http://localhost:3000/', { waitUntil: 'networkidle' });
+    await page.goto('http://localhost:3000/', { waitUntil: 'load' });
 
     // Record custom navigation time metric
     browserNavTime.add(Date.now() - navStart);
