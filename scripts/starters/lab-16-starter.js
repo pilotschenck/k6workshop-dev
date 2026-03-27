@@ -3,7 +3,7 @@
 //
 // This script runs two scenarios simultaneously:
 //   - api_load:     5 HTTP VUs hitting the demo-app API for 30 seconds
-//   - browser_check: 1 browser VU loading the demo-app homepage for 30 seconds
+//   - browser_check: 1 browser VU loading the Grafana UI for 30 seconds
 //
 // Your job: fill in the TODO sections in apiTest() and browserTest().
 //
@@ -51,13 +51,13 @@ export function apiTest() {
 
 // browserTest runs in the browser_check scenario (1 browser VU, Chromium).
 // This function MUST be async because browser APIs return Promises.
-// TODO: Open the demo-app homepage, take a screenshot, check the page title.
+// TODO: Open the Grafana UI, take a screenshot, check the page title.
 export async function browserTest() {
   const page = await browser.newPage();
 
   try {
-    // TODO: await page.goto('http://localhost:3000/');
-    // TODO: await page.screenshot({ path: 'mixed-test-screenshot.png' });
+    // TODO: await page.goto('http://localhost:3030/');
+    // TODO: await page.screenshot({ path: 'screenshots/mixed-test-screenshot.png' });
 
     // TODO: read the page title with page.title()
     // TODO: console.log the title

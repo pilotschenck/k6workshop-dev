@@ -94,14 +94,14 @@ Always close the page in a `finally` block so resources are released even when a
 Add a screenshot call after navigation:
 
 ```javascript
-await page.screenshot({ path: 'screenshot.png' });
+await page.screenshot({ path: 'screenshots/lab-14.png' });
 ```
 
 Run the script and verify the file was created:
 
 ```bash
 k6 run /home/aschenck/lab/k6workshop-dev/scripts/starters/lab-14-starter.js
-ls -lh screenshot.png
+ls -lh screenshots/lab-14.png
 ```
 
 The screenshot file is written to the current working directory.
@@ -165,7 +165,7 @@ INFO[0002] Page title: Herman Melville - Moby-Dick       source=console
      checks.........................: 100.00% ✓ 1  ✗ 0
 ```
 
-A `screenshot.png` file appears in the current directory.
+A `screenshots/lab-14.png` file appears in the screenshots directory.
 
 ## Key Takeaways
 

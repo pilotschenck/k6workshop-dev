@@ -52,7 +52,7 @@ export default function () {
     check(res, {
       'status 200':        (r) => r.status === 200,
       'fast response':     (r) => r.timings.duration < 2000,
-      'status ok in body': (r) => r.body.includes('ok'),
+      'status ok in body': (r) => r.body.includes('healthy'),
     });
   });
 

@@ -113,7 +113,7 @@ services:
     restart: unless-stopped
 
   ws-echo:
-    image: jmalloc/echo-server
+    build: ./apps/ws-echo
     ports:
       - "8765:8080"
     networks:
