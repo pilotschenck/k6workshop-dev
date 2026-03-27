@@ -100,14 +100,13 @@ export async function browserTest() {
   const navStart = Date.now();
 
   try {
-    // Navigate to the demo app homepage
-    await page.goto('http://localhost:3000/', { waitUntil: 'load' });
+    // Navigate to the Grafana UI — serves real HTML unlike the demo-app JSON API
+    await page.goto('http://localhost:3030/', { waitUntil: 'load' });
 
     // Record custom navigation time metric
     browserNavTime.add(Date.now() - navStart);
 
-    // Take a screenshot — useful for visual debugging if checks fail
-    await page.screenshot({ path: 'mixed-test-screenshot.png' });
+    await page.screenshot({ path: 'screenshots/mixed-test-screenshot.png' });
 
     // Read and log the page title
     const title = await page.title();
@@ -132,7 +131,7 @@ export async function browserTest() {
 
     // Take a failure screenshot for debugging
     try {
-      await page.screenshot({ path: 'mixed-test-failure.png' });
+      await page.screenshot({ path: 'screenshots/mixed-test-failure.png' });
     } catch (_) {
       // Ignore screenshot errors during error handling
     }
