@@ -73,7 +73,8 @@
       "script": "scripts/solutions/lab-07-solution.js",
       "services": ["demo-app", "prometheus"],
       "env": {
-        "BASE_URL": "http://localhost:3000"
+        "BASE_URL": "http://localhost:3000",
+        "K6_PROMETHEUS_RW_SERVER_URL": "http://localhost:9090/api/v1/write"
       },
       "k6Args": ["--out", "experimental-prometheus-rw"],
       "timeout": 90,
