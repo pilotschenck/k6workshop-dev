@@ -23,6 +23,7 @@ This approach reflects a real production concern: your API might handle the load
 - Labs 14–15 complete (browser module basics, page navigation, interactions)
 - Lab 03 complete (scenarios and stages)
 - Demo app running at http://localhost:3000
+- Grafana running at http://localhost:3030 (used for the browser scenario)
 
 ## Instructions
 
@@ -111,11 +112,11 @@ export async function browserTest() {
   const page = await browser.newPage();
 
   try {
-    // Navigate to the demo app homepage
-    await page.goto('http://localhost:3000/');
+    // Navigate to the Grafana UI — serves real HTML unlike the demo-app JSON API
+    await page.goto('http://localhost:3030/');
 
     // Capture a screenshot for visual debugging
-    await page.screenshot({ path: 'mixed-test-screenshot.png' });
+    await page.screenshot({ path: 'screenshots/mixed-test-screenshot.png' });
 
     // Read the page title
     const title = await page.title();
@@ -218,7 +219,7 @@ Running the starter with 5 API VUs + 1 browser VU for 30 seconds:
            * api_load: 5 looping VUs for 30s (exec: apiTest, gracefulStop: 30s)
            * browser_check: 1 looping VUs for 30s (exec: browserTest, gracefulStop: 30s)
 
-INFO[0002] Browser VU — page title: Demo Store          source=console
+INFO[0002] Browser VU — page title: Grafana             source=console
 
 ✓ api: products status 200
 ✓ api: products response < 300ms
@@ -234,7 +235,7 @@ INFO[0002] Browser VU — page title: Demo Store          source=console
      iterations.....................: 220     7.3/s
 ```
 
-A `mixed-test-screenshot.png` file will also appear in the current directory.
+A `screenshots/mixed-test-screenshot.png` file will also appear in the current directory.
 
 ## Key Takeaways
 
