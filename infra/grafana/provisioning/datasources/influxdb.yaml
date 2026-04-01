@@ -1,7 +1,7 @@
 apiVersion: 1
 
 datasources:
-  - name: InfluxDB-k6
+  - name: InfluxDB
     type: influxdb
     url: http://influxdb:8086
     database: k6
