@@ -1,0 +1,26 @@
+// Grafana Alloy — OTLP receiver → Tempo exporter
+//
+// Receives traces from k6 (--out experimental-opentelemetry) and any
+// other OTLP-instrumented services, then forwards them to Tempo for
+// storage and Grafana Explore for visualization.
+
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure = true
+    }
+  }
+}

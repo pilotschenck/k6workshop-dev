@@ -3,13 +3,16 @@
 // Run with trace header injection only (always works):
 //   k6 run scripts/solutions/lab-18-solution.js
 //
-// Run with OTel metrics export to local collector (requires newer k6 build):
+// Run with OTel metrics export to Alloy (requires newer k6 build):
 //   K6_OTEL_GRPC_EXPORTER_ENDPOINT=localhost:4317 \
 //   K6_OTEL_GRPC_EXPORTER_INSECURE=true \
 //   k6 run --out experimental-opentelemetry scripts/solutions/lab-18-solution.js
 //
-// View OTel collector output:
-//   docker logs $(docker ps -qf name=otel) 2>&1 | tail -50
+// View Alloy pipeline in the browser:
+//   http://localhost:12345
+//
+// View traces in Grafana Explore → Tempo datasource:
+//   http://localhost:3030/explore
 
 import http from 'k6/http';
 import { check, sleep } from 'k6';

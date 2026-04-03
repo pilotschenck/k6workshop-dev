@@ -24,7 +24,7 @@ This lab walks through enabling trace context injection, verifying the headers a
   ```bash
   docker compose -f infra/docker-compose.yml ps
   ```
-  Confirm `otel-collector` shows as `Up`
+  Confirm `alloy` and `tempo` show as `Up`
 
 ## Instructions
 
@@ -149,7 +149,7 @@ k6 version
 k6 run --out experimental-opentelemetry help 2>&1 || echo "not available in this build"
 ```
 
-**If available**, run the solution with OTel export:
+**If available**, run the solution with OTel export to Alloy:
 
 ```bash
 K6_OTEL_GRPC_EXPORTER_ENDPOINT=localhost:4317 \
@@ -157,19 +157,13 @@ K6_OTEL_GRPC_EXPORTER_INSECURE=true \
 k6 run --out experimental-opentelemetry scripts/solutions/lab-18-solution.js
 ```
 
-**If not available**, that is fine — `instrumentHTTP` still provides full trace context injection for your backend services. The OTel export flag is a bonus that sends k6's own performance metrics as OTel metrics to your collector.
+**If not available**, that is fine — `instrumentHTTP` still provides full trace context injection for your backend services. The OTel export flag is a bonus that sends k6's own performance metrics as OTel spans to Alloy → Tempo.
 
-### Step 6: View OTel Collector Logs
+### Step 6: View Traces in Grafana Explore
 
-Whether or not `--out experimental-opentelemetry` is available, the OTel collector is configured with a logging (debug) exporter. Any data it receives is written to Docker logs.
+Traces flow from Alloy into Tempo and are queryable directly in Grafana Explore. Open the **Grafana** tab (or navigate to **http://localhost:3030**), click **Explore** in the left sidebar, and select **Tempo** as the datasource. Use the **Search** tab to find traces by service name (`k6`) or click **Query type → Search** and browse recent traces.
 
-```bash
-docker logs $(docker ps -qf name=otel) 2>&1 | tail -50
-```
-
-If you ran with `--out experimental-opentelemetry`, you should see metric spans from k6 in the output. Look for lines mentioning `http_req_duration`, `vus`, or similar k6 metric names.
-
-The OTel collector is configured to export to both the logging exporter and Jaeger. Jaeger is included in the local stack and its UI is available at **http://localhost:16686**. After running with `--out experimental-opentelemetry`, open Jaeger and select "k6" from the Service dropdown to view the emitted spans.
+To watch Alloy processing data in real time, open the **Alloy** tab at **http://localhost:12345**. The pipeline graph shows live component health and data flow through the OTLP receiver and Tempo exporter.
 
 ### Step 7: The Full Correlation Story
 
@@ -182,11 +176,11 @@ demo-app receives request, reads traceparent, creates child span
        ↓
 demo-app calls database — passes traceparent to DB client
        ↓
-All spans share the same trace ID → appear in Grafana Tempo / Jaeger
+All spans share the same trace ID → Alloy receives via OTLP → Tempo stores them
        ↓
 k6 reports p95 = 800ms for /api/products
        ↓
-You look up the trace ID from the slow request in Tempo
+You look up the trace ID from the slow request in Grafana Explore → Tempo
        ↓
 You see: 650ms spent in a full table scan on the products query
 ```
@@ -216,6 +210,7 @@ INFO[0002] Request headers: {"Content-Type":"application/json","traceparent":"00
 - `instrumentHTTP({ propagator: 'w3c' })` injects `traceparent` headers into every k6 HTTP request with zero per-request code changes
 - The W3C TraceContext format is the industry standard; B3 (Zipkin) is also supported for older stacks
 - Trace context injection enables APM correlation — the most actionable connection between synthetic load tests and backend observability
-- `--out experimental-opentelemetry` (where available) sends k6's own metrics as OTel data to your collector
-- Jaeger is available at http://localhost:16686 to visualize traces received by the OTel collector — use the Service dropdown to find "k6"
+- `--out experimental-opentelemetry` (where available) sends k6's own spans to Alloy → Tempo
+- Grafana Alloy (http://localhost:12345) is a Grafana-native telemetry pipeline — it replaces standalone OTel Collector deployments and integrates natively with the rest of the Grafana stack
+- Traces are stored in Tempo and visualized in Grafana Explore — no separate UI to context-switch to
 - DataDog synthetic tests can correlate with DD APM traces — k6 + OTel achieves the same correlation using open standards with no proprietary agents or per-host pricing

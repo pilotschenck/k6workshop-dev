@@ -62,7 +62,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:10.4.0
+    image: grafana/grafana:latest
     ports:
       - "3030:3000"
     environment:
@@ -87,25 +87,28 @@ services:
       - k6workshop
     restart: unless-stopped
 
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.96.0
+  alloy:
+    image: grafana/alloy:latest
     ports:
       - "4317:4317"
       - "4318:4318"
-      - "8889:8889"
+      - "12345:12345"
     volumes:
-      - ./otel-collector/otel-config.yaml:/etc/otelcol-contrib/config.yaml
+      - ./alloy/config.alloy:/etc/alloy/config.alloy
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    depends_on:
+      - tempo
     networks:
       - k6workshop
     restart: unless-stopped
 
-  jaeger:
-    image: jaegertracing/all-in-one:1.56
+  tempo:
+    image: grafana/tempo:latest
     ports:
-      - "16686:16686"
-      - "14250:14250"
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
+      - "3200:3200"
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml
+    command: -config.file=/etc/tempo/tempo.yaml
     networks:
       - k6workshop
     restart: unless-stopped

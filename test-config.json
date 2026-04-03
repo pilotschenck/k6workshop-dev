@@ -168,7 +168,7 @@
       "id": "lab-18",
       "name": "Lab 18: OpenTelemetry Tracing",
       "script": "scripts/solutions/lab-18-solution.js",
-      "services": ["demo-app", "otel-collector", "jaeger"],
+      "services": ["demo-app", "alloy", "tempo"],
       "env": {
         "BASE_URL": "http://localhost:3000"
       },
