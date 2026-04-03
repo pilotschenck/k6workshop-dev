@@ -88,7 +88,7 @@ services:
     restart: unless-stopped
 
   alloy:
-    image: grafana/alloy:latest
+    image: grafana/alloy:v1.15.0
     ports:
       - "4317:4317"
       - "4318:4318"
@@ -103,7 +103,7 @@ services:
     restart: unless-stopped
 
   tempo:
-    image: grafana/tempo:latest
+    image: grafana/tempo:2.10.3
     ports:
       - "3200:3200"
     volumes:
