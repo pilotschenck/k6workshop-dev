@@ -42,8 +42,8 @@ This starts the following services:
 - **InfluxDB** — time-series database for k6 metrics (port 8086)
 - **Grafana** — dashboards for visualizing results (port 3030)
 - **Prometheus** — metrics scraping backend (port 9090)
-- **OTel Collector** — OpenTelemetry trace/metric collection (ports 4317, 4318)
-- **Jaeger** — distributed trace UI (port 16686)
+- **Alloy** — Grafana's telemetry pipeline; receives OTLP traces and forwards to Tempo (ports 4317, 4318 ingest; UI on port 12345)
+- **Tempo** — distributed trace backend; query traces via Grafana Explore (port 3200)
 - **ws-echo** — WebSocket echo server used in lab 21 (port 8765)
 
 ### Step 3: Wait for Healthy Status
@@ -88,9 +88,9 @@ curl -s http://localhost:9090/-/healthy
 ```
 Expected: `Prometheus Server is Healthy.`
 
-**Jaeger UI** (port 16686):
+**Alloy UI** (port 12345):
 ```bash
-curl -s -o /dev/null -w "%{http_code}" http://localhost:16686/
+curl -s -o /dev/null -w "%{http_code}" http://localhost:12345/
 ```
 Expected: `200`
 
