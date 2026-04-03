@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 05: Local Observability</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Lab 05: Local Observability
+
+Streaming Results to InfluxDB, Grafana, and Prometheus
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Advanced Scripting](../04_Advanced_Scripting/index.html) | [Next: Cloud Integration](../06_Cloud_Integration/index.html)</small>
+
+<aside class="notes">
+This module covers streaming k6 metrics to local observability backends for real-time monitoring and post-test analysis.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What You'll Learn
+
+- How to use `--out` flag to send metrics to InfluxDB
+- How to navigate the bundled Grafana k6 dashboard
+- Which panels to watch during a run (VUs, request rate, p95/p99, error rate)
+- How to configure Prometheus remote write output
+- How to query k6 metrics in the Prometheus expression browser
+- How data persists for post-test analysis
+
+<aside class="notes">
+By the end of this module, you'll have a complete local observability stack for k6 load testing.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The Problem: Terminal-Only Results
+
+```bash
+k6 run script.js
+```
+
+Results appear only in the terminal:
+- Summary disappears when you close the window
+- No real-time visualization during the run
+- No historical comparison across runs
+- Hard to share with team members
+
+<aside class="notes">
+The terminal summary is useful for quick tests, but real load tests need persistent storage and visualization.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Enter InfluxDB: Time-Series Storage
+
+InfluxDB is a time-series database optimized for metrics:
+- Stores every k6 data point with timestamps
+- Supports high-write throughput (thousands of metrics/sec)
+- Integrates with Grafana for visualization
+
+k6 has **built-in** InfluxDB output support.
+
+<aside class="notes">
+InfluxDB is already running in your workshop environment on port 8086, provisioned via Docker Compose.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Verify Services Are Running
+
+```bash
+# InfluxDB
+curl http://localhost:8086/ping
+
+# Grafana
+curl http://localhost:3030/api/health
+
+# Prometheus
+curl http://localhost:9090/-/healthy
+```
+
+All should return successful responses.
+
+<aside class="notes">
+If any service is unreachable, check your Docker Compose stack with docker compose ps.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Run k6 with InfluxDB Output
+
+```bash
+k6 run --out influxdb=http://localhost:8086/k6 scripts/solutions/lab-06-solution.js
+```
+
+Output flag syntax:
+```
+--out <output-type>=<connection-string>
+```
+
+- `influxdb` — built-in output module
+- `http://localhost:8086/k6` — InfluxDB URL + database name
+
+k6 creates the database automatically if it doesn't exist.
+
+<aside class="notes">
+The database name is k6 in this example, but you can use any name. Just ensure the Grafana datasource points to the same database.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Open Grafana Dashboard
+
+Navigate to: **http://localhost:3030**
+
+Login credentials:
+- Username: `admin`
+- Password: `admin`
+
+Browse to: **Dashboards → k6 / k6 Overview**
+
+<aside class="notes">
+The k6 dashboard is pre-configured in the workshop environment. You should see data flowing in within 5-10 seconds of starting the run.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Grafana Panels
+
+| Panel | What It Shows |
+|-------|---------------|
+| **Virtual Users** | Active VU count across the test |
+| **Request Rate** | HTTP requests per second |
+| **Response Time (p95 / p99)** | Latency percentiles for all requests |
+| **Error Rate** | Fraction of requests returning non-2xx status |
+| **Checks Passed / Failed** | Pass rate of named k6 checks |
+
+<aside class="notes">
+These are the most operationally meaningful signals to watch during a load test. Focus on p95/p99 latency and error rate.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Watch Metrics in Real-Time
+
+With the test running, observe panels refreshing every few seconds:
+
+- **VU count** rises during ramp-up, holds during sustain
+- **Request rate** increases proportionally to VU count
+- **p95/p99 latency** reveals performance degradation
+- **Error rate** flags when thresholds are breached
+
+<aside class="notes">
+Real-time monitoring lets you spot issues as they happen, not after the test completes. Watch for latency spikes or error rate increases.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Exploring the InfluxDB Datasource
+
+In Grafana:
+1. Go to **Configuration → Data Sources**
+2. Click the **InfluxDB** datasource
+3. Note the URL: `http://influxdb:8086`
+4. Note the database name: `k6`
+
+This is how Grafana knows where to query for k6 metrics.
+
+<aside class="notes">
+The datasource is pre-configured via provisioning files in the Docker Compose stack. You can create additional datasources for other databases.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Examining Panel Queries
+
+Click any panel title → **Edit** to see the underlying query.
+
+Example p95 response time query:
+```sql
+SELECT percentile("value", 95)
+FROM "http_req_duration"
+WHERE $timeFilter
+GROUP BY time($__interval)
+fill(none)
+```
+
+This is InfluxQL syntax.
+
+<aside class="notes">
+Understanding panel queries helps you build custom dashboards later. The $timeFilter and $__interval are Grafana variables.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Data Persists After the Run
+
+After the test completes:
+- All data remains in InfluxDB
+- Use Grafana time picker to review the full test window
+- Compare results across multiple runs
+- Share Grafana URLs with team members
+
+<aside class="notes">
+This is the key advantage over terminal-only output. Data is persistent and queryable long after the test ends.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Enter Prometheus: Alternative Backend
+
+Prometheus is a metrics scraping and storage system:
+- Pull-based model (default) or push-based (remote write)
+- First-class support for labels and filtering
+- PromQL query language
+- Widely adopted in Kubernetes environments
+
+k6 supports **Prometheus remote write** output.
+
+<aside class="notes">
+Prometheus is already running in your workshop environment on port 9090 with remote write receiver enabled.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Prometheus Remote Write Configuration
+
+Set the environment variable:
+```bash
+export K6_PROMETHEUS_RW_SERVER_URL=http://localhost:9090/api/v1/write
+```
+
+Run k6 with Prometheus output:
+```bash
+k6 run --out experimental-prometheus-rw scripts/solutions/lab-03-solution.js
+```
+
+Watch the CLI output for confirmation:
+```
+output: Prometheus remote write (http://localhost:9090/api/v1/write)
+```
+
+<aside class="notes">
+The experimental prefix means the API may change in future k6 releases, but the feature is production-ready for most use cases.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Prometheus Must Enable Remote Write
+
+Prometheus does not accept remote write by default.
+
+The workshop environment sets this flag in `docker-compose.yml`:
+```yaml
+prometheus:
+  command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    - --web.enable-remote-write-receiver
+```
+
+If you deploy Prometheus yourself, this flag is required.
+
+<aside class="notes">
+This is the most common issue when Prometheus remote write doesn't work. Check the command flags first.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Query k6 Metrics in Prometheus
+
+Navigate to: **http://localhost:9090**
+
+Click **Graph** tab and enter:
+```promql
+k6_http_req_duration_p95
+```
+
+Try additional queries:
+```promql
+# Request rate
+rate(k6_http_reqs_total[1m])
+
+# Active VUs
+k6_vus
+
+# Check pass rate
+k6_checks_total
+```
+
+<aside class="notes">
+Prometheus translates k6 metric names by adding k6_ prefix and replacing dots with underscores.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## k6 to Prometheus Metric Mapping
+
+| k6 metric | Prometheus metric |
+|-----------|-------------------|
+| `http_req_duration` (p95) | `k6_http_req_duration_p95` |
+| `http_reqs` | `k6_http_reqs_total` |
+| `vus` | `k6_vus` |
+| `checks` | `k6_checks_total` |
+
+Browse all k6 metrics by filtering on `k6_` prefix in Metrics Explorer.
+
+<aside class="notes">
+The naming convention is automatic. k6 handles the translation when pushing metrics to Prometheus.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## InfluxDB vs. Prometheus: When to Use Each
+
+| Feature | InfluxDB | Prometheus |
+|---|---|---|
+| k6 integration | Built-in | Experimental (but stable) |
+| Query language | InfluxQL | PromQL |
+| Storage model | Push-based | Pull or Push (remote write) |
+| Grafana support | Excellent | Excellent |
+| Best for | Dedicated k6 stack | Existing Prometheus infrastructure |
+
+Both work well — choose based on your existing stack.
+
+<aside class="notes">
+If you already run Prometheus for Kubernetes monitoring, use it for k6 too. Otherwise, InfluxDB is simpler for k6-only use cases.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- `--out influxdb=<url>/<database>` streams metrics to InfluxDB during the run
+- Grafana queries InfluxDB in near real-time for live monitoring
+- The k6 InfluxDB output is built-in — no extension required
+- `--out experimental-prometheus-rw` enables push-based metrics to Prometheus
+- Prometheus must have `--web.enable-remote-write-receiver` flag enabled
+- Data persists in both backends for post-test analysis and historical comparison
+- Both InfluxDB and Prometheus integrate seamlessly with Grafana
+
+<aside class="notes">
+You now have a complete local observability stack for k6 load testing, with real-time monitoring and persistent storage.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+# Lab Complete!
+
+Ready to explore cloud integration and JSON output
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Advanced Scripting](../04_Advanced_Scripting/index.html) | [Next: Cloud Integration](../06_Cloud_Integration/index.html)</small>
+
+<aside class="notes">
+Great work! You can now stream k6 metrics to local observability backends. Next up: JSON output and Grafana Cloud k6 integration.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script src="../common-scripts.js"></script>
+</body>
+</html>

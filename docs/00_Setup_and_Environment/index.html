@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 00: Setup and Environment</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Lab 00: Setup and Environment
+
+Getting your local workshop environment ready
+
+<small>Navigate: [All Slides](../index.html) | [Next: k6 Fundamentals](../01_k6_Fundamentals/index.html)</small>
+
+<aside class="notes">
+Welcome to the k6 + Grafana Synthetic Monitoring Workshop. This first module ensures everyone starts from the same baseline with all required services running and verified.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What You'll Learn
+
+- How to start the workshop infrastructure with Docker Compose
+- How to verify each service is healthy
+- How to install k6 on your operating system
+- How to run a basic k6 smoke check
+- How to access Grafana dashboards
+
+<aside class="notes">
+This lab is all about environmental preparation. By the end, you'll have a fully functional local observability stack ready for all subsequent labs.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Prerequisites
+
+- **Docker Desktop** (or Docker Engine + Compose plugin)
+- **Terminal access**
+- **Internet access** for k6 installation
+
+You should be able to run `docker info` without errors.
+
+<aside class="notes">
+Make sure Docker Desktop is running before proceeding. On macOS, you'll see the Docker icon in the menu bar. On Windows, check the system tray.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Workshop Infrastructure
+
+The `docker-compose.yml` starts 9 services:
+
+- **demo-app** (port 3000) — target application
+- **broken-app** (port 3001) — intentionally misconfigured
+- **httpbin** (port 8080) — HTTP testing utility
+- **WireMock** (port 8888) — mock API server
+- **InfluxDB** (port 8086) — time-series database
+- **Grafana** (port 3030) — visualization dashboards
+- **Prometheus** (port 9090) — metrics scraping
+- **Alloy** (ports 4317, 4318, 12345) — telemetry pipeline
+- **Tempo** (port 3200) — distributed tracing
+- **ws-echo** (port 8765) — WebSocket echo server
+
+<aside class="notes">
+This comprehensive stack gives you everything needed for k6 load testing, observability, and synthetic monitoring. Note that Grafana runs on port 3030, not the default 3000, to avoid conflicts with demo-app.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Start All Services
+
+From the repository root:
+
+```bash
+cd infra && docker compose up -d
+```
+
+Wait for services to become healthy:
+
+```bash
+docker compose ps
+```
+
+Look for `healthy` or `running` status for all containers.
+
+<aside class="notes">
+The -d flag runs containers in detached mode. If any service fails to start, check the logs with docker compose logs [service-name].
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Verify Services
+
+Quick health checks:
+
+```bash
+# demo-app
+curl http://localhost:3000/health
+
+# InfluxDB
+curl http://localhost:8086/ping
+
+# Grafana
+curl http://localhost:3030/api/health
+
+# Prometheus
+curl http://localhost:9090/-/healthy
+```
+
+All should return successful responses.
+
+<aside class="notes">
+If any service is unreachable, wait another 10-15 seconds and retry. Some services (especially databases) take time to initialize on first run.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Install k6
+
+**macOS (Homebrew):**
+```bash
+brew install k6
+```
+
+**Linux (Debian/Ubuntu):**
+```bash
+sudo gpg --no-default-keyring \
+  --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+  --keyserver hkp://keyserver.ubuntu.com:80 \
+  --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] \
+  https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+sudo apt-get update && sudo apt-get install k6
+```
+
+**Windows (winget):**
+```powershell
+winget install k6 --source winget
+```
+
+<aside class="notes">
+k6 is a single binary with no runtime dependencies. Once installed, it works offline and has no version conflicts with other tools.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Verify k6 Installation
+
+```bash
+k6 version
+```
+
+Expected output:
+```
+k6 v0.xx.x
+```
+
+<aside class="notes">
+The specific version doesn't matter for this workshop. Any v0.40+ release will work. k6 has excellent backward compatibility.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Run the Smoke Check
+
+From the repository root:
+
+```bash
+k6 run scripts/smoke-check.js
+```
+
+This script:
+- Makes a single request to demo-app
+- Verifies the response is healthy
+- Should complete in a few seconds with no errors
+
+<aside class="notes">
+The smoke check is a simple end-to-end test that verifies k6 can reach the demo-app and parse responses correctly. It's your first k6 script execution.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Expected Smoke Check Output
+
+```
+          /\      |‾‾| /‾‾/   /‾‾/
+     /\  /  \     |  |/  /   /  /
+    /  \/    \    |     (   /   ‾‾\
+   /          \   |  |\  \ |  (‾)  |
+  / __________ \  |__| \__\ \_____/ .io
+
+  execution: local
+     script: scripts/smoke-check.js
+     output: -
+
+  scenarios: (100.00%) 1 scenario, 1 max VUs, 30s max duration
+           * default: 1 looping VUs for 10s (gracefulStop: 30s)
+
+  ✓ status is 200
+
+  checks.........................: 100.00% ✓ 1 ✗ 0
+  http_req_duration..............: avg=5ms ...
+```
+
+<aside class="notes">
+The green checkmark next to 'status is 200' indicates the check passed. We'll cover checks in detail in Lab 02.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Open Grafana
+
+Navigate to: **http://localhost:3030**
+
+Default credentials:
+- Username: `admin`
+- Password: `admin`
+
+You may be prompted to change the password — you can skip this for the workshop.
+
+<aside class="notes">
+Grafana has pre-configured dashboards for k6, InfluxDB, and Prometheus datasources. Browse the dashboards to familiarize yourself with the layout.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- Docker Compose manages the entire workshop infrastructure as a single unit
+- k6 is a single binary with no runtime dependencies
+- The **demo-app** (port 3000) is your primary target
+- The **broken-app** (port 3001) is intentionally misconfigured for threshold testing
+- **Grafana** (port 3030) is your observability dashboard throughout the workshop
+
+<aside class="notes">
+You're now ready to start writing and running k6 load tests. The next module covers k6 fundamentals: your first test script.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+# Lab Complete!
+
+Environment verified and ready
+
+<small>Navigate: [All Slides](../index.html) | [Next: k6 Fundamentals](../01_k6_Fundamentals/index.html)</small>
+
+<aside class="notes">
+Great work! With the environment set up, you're ready to dive into k6 scripting and load testing fundamentals.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script src="../common-scripts.js"></script>
+</body>
+</html>

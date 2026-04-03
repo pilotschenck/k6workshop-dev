@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 06: Cloud Integration</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Lab 06: Cloud Integration
+
+JSON Output and k6 Cloud Run
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Local Observability](../05_Local_Observability/index.html)</small>
+
+<aside class="notes">
+This module covers JSON output for structured data export and k6 Cloud for persistent, shareable test results.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What You'll Learn
+
+- How to write k6 metric data to JSON files with `--out json`
+- The structure of k6 JSON output records
+- How to extract specific metrics using `jq`
+- How to use `handleSummary` for custom report generation
+- The difference between `k6 run` (local) and `k6 cloud run`
+- How to navigate the k6 Cloud results UI
+- What cloud execution gives you over local runs
+
+<aside class="notes">
+By the end of this module, you'll understand both structured data export and cloud-based test execution.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Part 1: JSON Output
+
+Structured Data for Post-Processing
+
+<aside class="notes">
+JSON output captures every metric data point as line-delimited JSON for archiving or feeding into CI pipelines.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Run k6 with JSON Output
+
+```bash
+k6 run --out json=results.json scripts/solutions/lab-02-solution.js
+```
+
+This writes every metric data point to `results.json` while the test runs.
+
+Check file size:
+```bash
+wc -l results.json
+# Output: 4823 results.json
+```
+
+A short test can produce thousands of lines.
+
+<aside class="notes">
+The file is created immediately and grows as the test progresses. Each line is a self-contained JSON object.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## JSON Record Structure
+
+```json
+{
+  "type": "Point",
+  "metric": "http_req_duration",
+  "data": {
+    "time": "2024-01-15T10:23:45.123456789Z",
+    "value": 142.35,
+    "tags": {
+      "method": "GET",
+      "name": "http://localhost:3000/",
+      "status": "200",
+      "url": "http://localhost:3000/"
+    }
+  }
+}
+```
+
+Each line is a complete metric sample.
+
+<aside class="notes">
+The tags field contains all labels attached to this sample, including URL, method, status, and custom tags.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key JSON Fields
+
+| Field | Description |
+|-------|-------------|
+| `type` | Always `"Point"` for metric data |
+| `metric` | k6 metric name (e.g., `http_req_duration`) |
+| `data.time` | ISO 8601 timestamp of the sample |
+| `data.value` | Numeric value (milliseconds for durations) |
+| `data.tags` | Labels attached to this sample |
+
+<aside class="notes">
+This structure makes it easy to filter and aggregate data using jq or other JSON processing tools.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Extract Metrics with jq
+
+Filter for `http_req_duration` only:
+```bash
+cat results.json | jq 'select(.metric=="http_req_duration")'
+```
+
+Extract values and timestamps:
+```bash
+cat results.json | jq -c 'select(.metric=="http_req_duration") | {t: .data.time, ms: .data.value}'
+```
+
+Find the slowest request:
+```bash
+cat results.json | jq 'select(.metric=="http_req_duration") | .data.value' | sort -n | tail -1
+```
+
+<aside class="notes">
+jq is a powerful tool for slicing and aggregating JSON output files. Install it with brew install jq on macOS.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Calculate Average Response Time
+
+```bash
+cat results.json | jq -s '
+  [.[] | select(.metric=="http_req_duration") | .data.value]
+  | add/length
+'
+```
+
+This:
+1. Slurps all lines into an array (`-s`)
+2. Filters for `http_req_duration` metrics
+3. Extracts all values
+4. Calculates average with `add/length`
+
+<aside class="notes">
+JSON output enables custom analysis that goes beyond what k6's built-in summary provides.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## handleSummary: Custom Reports
+
+```javascript
+export function handleSummary(data) {
+  const p95 = data.metrics['http_req_duration'].values['p(95)'];
+  const rps = data.metrics['http_reqs'].values['rate'];
+  const errorRate = data.metrics['http_req_failed'].values['rate'];
+
+  const md = `# Test Summary\n\n` +
+    `- **p95 latency:** ${p95.toFixed(2)} ms\n` +
+    `- **Requests/s:** ${rps.toFixed(2)}\n` +
+    `- **Error rate:** ${(errorRate * 100).toFixed(2)}%\n`;
+
+  return {
+    stdout: md,
+    'summary.md': md,
+  };
+}
+```
+
+<aside class="notes">
+handleSummary receives the full summary object and can return content for stdout, stderr, or named files.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## handleSummary Output Destinations
+
+```javascript
+return {
+  stdout: md,           // Print to terminal
+  stderr: errors,       // Print to stderr
+  'summary.md': md,     // Write to file
+  'summary.json': json, // Write to file
+};
+```
+
+Use cases:
+- CI/CD artifacts (save summary.json)
+- Slack webhooks (POST summary to endpoint)
+- Custom dashboards (transform to HTML)
+
+<aside class="notes">
+The handleSummary hook is extremely flexible. You can generate any output format from the same data that drives the CLI table.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Part 2: k6 Cloud Run
+
+Persistent, Shareable Test Results
+
+<aside class="notes">
+k6 Cloud changes where tests execute and how results are stored, without changing the script.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Local vs. Cloud Execution
+
+**k6 run (local):**
+- Executes on your workstation
+- Results in terminal only
+- Data lost when session ends
+- No shareable URL
+
+**k6 cloud run:**
+- Executes in Grafana Cloud
+- Results stored persistently
+- Shareable URL for team collaboration
+- Automated performance insights
+
+<aside class="notes">
+k6 cloud run is a drop-in replacement for k6 run. The script is identical; only the execution destination changes.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Verify Your Cloud Token
+
+```bash
+echo $K6_CLOUD_TOKEN
+```
+
+You should see a long alphanumeric string.
+
+If empty, retrieve it from:
+**grafana.com → Your Stack → k6 → Settings → API Token**
+
+Set it:
+```bash
+export K6_CLOUD_TOKEN=<paste-your-token-here>
+```
+
+<aside class="notes">
+The cloud token authenticates your CLI against your Grafana Cloud account. It's required for k6 cloud run.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Run Locally First
+
+```bash
+k6 run scripts/starters/lab-09-starter.js
+```
+
+Note the characteristics:
+- Results appear only in this terminal
+- Summary disappears when you close the window
+- No URL to share
+- Data requires your own infrastructure to persist
+
+<aside class="notes">
+Run locally first to establish a baseline. Then compare the cloud experience.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Run in the Cloud
+
+```bash
+k6 cloud run scripts/starters/lab-09-starter.js
+```
+
+Output shows:
+```
+  execution: cloud
+     script: scripts/starters/lab-09-starter.js
+     output: https://app.grafana.com/a/k6-app/runs/12345678
+
+  Run your test results here: https://app.grafana.com/a/k6-app/runs/12345678
+```
+
+A **results URL** is printed immediately.
+
+<aside class="notes">
+Open the URL while the test is still running to watch results stream in live. This is the key difference from local execution.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Cloud Results UI: Run Overview
+
+Top of the page shows:
+- Test status badge (Finished / Running / Failed)
+- Duration, VUs, total requests, error rate at a glance
+- Threshold results with pass/fail status
+
+Green badge = all thresholds passed
+Red badge = one or more thresholds failed
+
+<aside class="notes">
+This is your first look at whether the test succeeded or failed, before diving into detailed metrics.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Performance Insights Tab
+
+Grafana's automated analysis of your run:
+- Flags high error rates
+- Detects latency spikes
+- Identifies throughput drops
+- Suggests potential issues
+
+Think of this as a "first reading" before you dig into raw metrics.
+
+<aside class="notes">
+Performance Insights is unique to k6 Cloud. It uses heuristics to flag common load testing problems automatically.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## HTTP Tab: Endpoint Breakdown
+
+| URL | Requests | Avg | p95 | Max | Failures |
+|-----|----------|-----|-----|-----|----------|
+| GET / | 120 | 4ms | 12ms | 45ms | 0.00% |
+| GET /api/products | 120 | 6ms | 18ms | 67ms | 0.00% |
+| POST /login | 120 | 145ms | 340ms | 890ms | 2.50% |
+
+Click any row to see a full time-series chart for that endpoint.
+
+<aside class="notes">
+This breakdown is invaluable when you have many endpoints. It quickly identifies which endpoint is slow or failing.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Checks Tab
+
+Shows pass/fail counts for every `check()` call in your script:
+
+```
+✓ status is 200          120 passed, 0 failed
+✓ response time < 500ms  118 passed, 2 failed
+✓ body contains products 120 passed, 0 failed
+```
+
+Empty if the script has no checks.
+
+<aside class="notes">
+This tab correlates with your check() assertions in the script. Use it to pinpoint which validation failed.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Script Tab
+
+The exact script that was run, stored alongside the results.
+
+Invaluable six months later when you can't remember:
+- What URL you tested
+- What thresholds you set
+- What user flow you simulated
+
+<aside class="notes">
+Cloud storage includes the script source, eliminating "what version of the script did I run?" confusion.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Run the Solution for a Richer Cloud Run
+
+```bash
+k6 cloud run scripts/solutions/lab-09-solution.js
+```
+
+The solution adds:
+- Multi-stage load profile (ramp-up / sustain / ramp-down)
+- Checks for response validation
+- Thresholds for pass/fail criteria
+
+Open the results URL and watch VU count change in real-time.
+
+<aside class="notes">
+Staged load profiles reveal how systems handle gradual load increases. Watch for connection pool saturation or garbage collection pauses.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What Cloud Gives You Over Local
+
+| Capability | Local (`k6 run`) | Cloud (`k6 cloud run`) |
+|---|---|---|
+| Results storage | Terminal only | Persistent in Grafana Cloud |
+| Shareable URL | No | Yes |
+| Performance insights | No | Yes |
+| Multi-location execution | No | Yes (requires plan) |
+| Results dashboard | DIY (InfluxDB + Grafana) | Built-in |
+| Historical comparison | Manual | Built-in trend view |
+
+<aside class="notes">
+Cloud execution is ideal for team collaboration and long-term test result storage. Local is better for rapid iteration during script development.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- `--out json=<filename>` captures every raw metric sample as line-delimited JSON
+- `jq` is a powerful tool for slicing and aggregating JSON output
+- `handleSummary` produces custom reports (Markdown, JSON, HTML) from summary data
+- `k6 cloud run` is a drop-in replacement for `k6 run` with persistent, shareable results
+- Cloud results UI provides endpoint breakdown, automated insights, and historical trends
+- Use local execution for development, cloud for team collaboration and CI/CD integration
+
+<aside class="notes">
+You now have the complete toolkit for k6 load testing: local iteration, structured data export, and cloud-based execution.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+# Workshop Complete!
+
+You've mastered k6 load testing
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Local Observability](../05_Local_Observability/index.html)</small>
+
+<aside class="notes">
+Congratulations! You've completed the k6 workshop. You can now create comprehensive load tests with checks, thresholds, stages, groups, tags, parameterization, and integration with observability backends.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script src="../common-scripts.js"></script>
+</body>
+</html>

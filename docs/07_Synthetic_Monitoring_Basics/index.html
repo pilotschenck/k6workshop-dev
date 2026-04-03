@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 07: Synthetic Monitoring Basics</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Module 07: Synthetic Monitoring Basics
+
+Continuous Uptime Monitoring with Grafana SM
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Cloud Integration](../06_Cloud_Integration/index.html) | [Next: Synthetic Advanced](../08_Synthetic_Advanced_Features/index.html)</small>
+
+<aside class="notes">
+This module covers Labs 10-13: Grafana Synthetic Monitoring introduction, HTTP checks, DNS/TCP checks, and scripted checks.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What is Synthetic Monitoring?
+
+Continuous, scheduled checks from global probe locations that answer:
+
+**"Is my service reachable and working correctly right now?"**
+
+From the perspective of users around the world.
+
+<aside class="notes">
+Synthetic Monitoring is fundamentally different from load testing. SM runs 1 VU on a schedule to verify functionality, while load testing runs many VUs to find performance limits.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## SM vs Load Testing
+
+| | Grafana SM | k6 Load Testing |
+|---|---|---|
+| Question | Is it up? | How does it perform under load? |
+| Trigger | Scheduled (every N minutes) | On-demand (manual or CI) |
+| Virtual users | 1 | Many |
+| Duration | Seconds | Minutes to hours |
+| Goal | Detect outages | Find capacity limits |
+
+You use both: SM for always-on visibility, k6 for periodic performance analysis.
+
+<aside class="notes">
+Think of SM as your smoke detector and k6 as your stress test lab. Both are essential for different purposes.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## DataDog Comparison
+
+Grafana Synthetic Monitoring = DataDog Synthetic API Tests
+
+Both run scheduled HTTP checks from global locations, both alert on failures, both display uptime percentages.
+
+**Key difference:** SM results live natively in Grafana alongside metrics, logs, and traces. No separate portal.
+
+<aside class="notes">
+With DD you switch between Synthetics portal and APM dashboards. With Grafana everything is in one unified interface.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 10: SM Introduction
+
+Navigate to Synthetic Monitoring in your Grafana Cloud stack.
+
+Key areas:
+- **Checks** — main list of all your monitors
+- **Summary** — dashboard aggregating all checks
+- **Probes** — global probe locations
+- **Alerts** — pre-built alerting rules
+- **Config** — plugin settings
+
+<aside class="notes">
+The Checks list is your operational view. The Summary dashboard is for wall screens and incident response.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Creating Your First HTTP Check
+
+```yaml
+Job name: Workshop Demo
+URL: https://grafana.com
+Probe locations: US East, EU West, AP Singapore
+Frequency: 1 minute
+Timeout: 10 seconds
+Assertion: HTTP status code equals 200
+```
+
+Use the **Test** button for immediate execution without waiting.
+
+<aside class="notes">
+The Test button is invaluable during setup — instant feedback without polluting uptime history.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Understanding Check Results
+
+Check detail page shows:
+- **Uptime percentage** (100% after successful runs)
+- **Response time graph** by probe location
+- **Probe breakdown table** with per-location stats
+- **Error log** for failed attempts
+
+Geographic latency differences are visible: US East will be faster to grafana.com than Asia Pacific.
+
+<aside class="notes">
+This view directly mirrors what users in those regions experience. If AP users complain it's slow, this graph is the first place to look.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 11: HTTP Assertions
+
+Beyond status code 200, add:
+- **Body Contains** — verify response has expected content
+- **Response Time** — catch slowdowns before users notice
+- **TLS Validation** — detect certificate expiry
+
+```javascript
+Assertions:
+  Status Code equals 200
+  Body Contains "slideshow"
+  Response Time < 2000 ms
+TLS: Verify SSL certificate enabled
+```
+
+<aside class="notes">
+Certificate expiry is one of the most common causes of unexpected outages. SM with TLS validation catches this weeks before expiry.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Custom Request Headers
+
+```yaml
+Header name: X-Workshop
+Header value: true
+```
+
+Use cases:
+- Bypass WAF rules with secret headers
+- Activate feature flags
+- Mark traffic in logs (filter synthetic requests from analytics)
+
+<aside class="notes">
+On your own services you might send X-Synthetic-Monitor: grafana-sm and filter those requests from error rate SLI.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Check Status Logic
+
+A check is **Up** when ALL of the following pass:
+- HTTP connection established within timeout
+- TLS validation passes (if enabled)
+- HTTP response received
+- All assertions pass
+
+A check is **Down** when ANY fail:
+- Connection timeout or refused
+- TLS certificate invalid/expired
+- Any assertion fails
+
+<aside class="notes">
+Uptime = successful runs / total runs. This calculation is per-probe and aggregate, giving both global and regional views.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 12: DNS and TCP Checks
+
+**DNS Check** — verify hostname resolves to expected records
+```yaml
+Target: grafana.com
+Record type: A
+Assertion: Answer contains grafana.com
+```
+
+**TCP Check** — verify port is open and accepting connections
+```yaml
+Target: grafana.com:443
+TLS: Enabled
+```
+
+<aside class="notes">
+DNS checks detect DNS hijacking or propagation issues after CDN migrations. TCP checks work for databases, message brokers — anything non-HTTP.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## When to Use Each Check Type
+
+| Scenario | Check Type |
+|---|---|
+| Web pages and REST APIs | HTTP |
+| Multi-step user flow | Scripted (Lab 13) |
+| Hostname resolution | DNS |
+| DNS hijacking detection | DNS with assertions |
+| Non-HTTP services (databases, Redis, Kafka) | TCP |
+| TLS cert validity on non-HTTP port | TCP with TLS |
+
+<aside class="notes">
+A complete monitoring strategy uses all three together: HTTP for public endpoint, DNS for hostname, TCP for backend services.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## DNS Check Results
+
+Results show:
+- **Reachability** — percentage that resolved
+- **Resolution time** — pure DNS lookup latency (5-50ms typical)
+- **Response by probe** — table per location
+
+Resolution time varies by location: Singapore probe querying US nameserver will be slower than Virginia.
+
+<aside class="notes">
+DNS check response time is NOT HTTP latency. Comparing the two directly is meaningless — they measure different layers.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## TCP Check Results
+
+For TCP checks with TLS:
+- **Connection time** — TCP three-way handshake (SYN, SYN-ACK, ACK)
+- **TLS handshake time** — time to negotiate TLS session
+- **Total duration** — TCP + TLS combined
+
+Typical for grafana.com:443:
+- TCP: 20-150ms
+- TLS: 30-200ms
+- Total: < 500ms
+
+<aside class="notes">
+Unusually high connection times from a specific probe indicate network-level issues (routing, packet loss) rather than application problems.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 13: Scripted Checks
+
+Upload a k6 script to run as a scheduled synthetic monitor.
+
+**Key insight:** The scripting language is exactly the same k6 JavaScript you've been writing. No separate DSL.
+
+Constraint: SM scripted checks run with 1 VU on a schedule — not load tests.
+
+<aside class="notes">
+A script you develop locally with k6 run can be uploaded to SM with minimal or no changes.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Multi-Step Workflow Example
+
+```javascript
+export default function () {
+  // Step A: Verify headers endpoint
+  const headersRes = http.get('https://httpbin.org/headers');
+  check(headersRes, {
+    'headers: status is 200': (r) => r.status === 200,
+  });
+
+  sleep(1);
+
+  // Step B: POST and verify echo
+  const payload = JSON.stringify({ workflow: 'lab-13' });
+  const postRes = http.post('https://httpbin.org/post', payload);
+  check(postRes, {
+    'post: body echoes payload': (r) => {
+      return JSON.parse(r.body).json.workflow === 'lab-13';
+    },
+  });
+}
+```
+
+<aside class="notes">
+Each check name appears as an individual pass/fail row in SM results dashboard. Choose names that make failures self-explanatory.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Testing Scripts Locally First
+
+Always validate before uploading:
+
+```bash
+k6 run scripts/starters/lab-13-starter.js
+```
+
+Watch for check pass/fail counts. Fix failures locally — diagnosing through SM UI is slower.
+
+SM ignores `vus` and `duration` options. Keep them for local testing.
+
+<aside class="notes">
+A script that fails locally will fail in SM too. Local terminal output is more informative than SM's UI for debugging.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Uploading to SM
+
+1. SM → Add Check → **Scripted**
+2. Paste full script content
+3. Configure:
+   - Job name
+   - Frequency (e.g., 5 minutes)
+   - Timeout (60s for multi-step scripts)
+   - Probe locations (2-3 locations sufficient)
+
+Use **Test** button to verify script runs in SM environment.
+
+<aside class="notes">
+60-second timeout is important for multi-step scripts. Default 10s is too short for meaningful workflows.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Scripted Check Best Practices
+
+Production-quality patterns:
+- **Groups** — `group('step-name', () => {...})` organizes output
+- **Custom Trend metrics** — track per-step latency independently
+- **try/catch/finally** — graceful error handling
+- **Descriptive check names** — `'step-name: what we expected'`
+
+Keep scripts under 30 seconds execution time.
+
+<aside class="notes">
+If your workflow has more than 5-6 steps, consider splitting into multiple scripted checks — easier to debug when they fail.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## DataDog Comparison: Scripted Checks
+
+| DataDog | Grafana SM |
+|---|---|
+| Multistep API Test | Scripted Check |
+| JSON test definition or UI builder | k6 JavaScript |
+| Proprietary assertion syntax | Standard k6 `check()` calls |
+| Separate from load test tooling | Same language as k6 load tests |
+
+Significant advantage: shared k6 skills across load testing and synthetic monitoring.
+
+<aside class="notes">
+In DD, your load testing tool (JMeter, Gatling) and synthetic tool are separate products. In Grafana ecosystem, k6 is the language for both.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- SM runs 1-VU scheduled checks from global probes; load testing runs many VUs to find limits
+- HTTP checks validate endpoints; DNS checks verify resolution; TCP checks test connectivity
+- Each probe location runs independently — response time graph shows geographic latency variation
+- Scripted checks use the exact same k6 JavaScript as local load tests
+- The **Test** button provides instant feedback during check configuration
+- SM results are native Grafana data: dashboards, alerting, SLOs work without export
+
+<aside class="notes">
+SM is the always-on layer; k6 is the on-demand layer. Together they give complete observability of availability and performance.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ],
+            slideNumber: 'c/t',
+            showSlideNumber: 'all'
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 02: HTTP Testing, Checks & Thresholds</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Lab 02: HTTP Testing, Checks & Thresholds
+
+Adding Validation and Pass/Fail Criteria
+
+<small>Navigate: [All Slides](../index.html) | [Prev: k6 Fundamentals](../01_k6_Fundamentals/index.html) | [Next: Load Profiles](../03_Load_Profiles_and_Stages/index.html)</small>
+
+<aside class="notes">
+This module teaches you how to validate response correctness with checks and define pass/fail criteria with thresholds.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What You'll Learn
+
+- How to use `check()` to validate status codes, response times, and body content
+- How to set pass/fail thresholds on built-in and custom metrics
+- What threshold failures look like in terminal output and exit codes
+- How to use environment variables to switch targets without editing scripts
+- The difference between checks and thresholds
+
+<aside class="notes">
+By the end of this lab, you'll be able to create self-validating load tests suitable for CI/CD pipelines.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The Problem: No Validation
+
+```javascript
+export default function () {
+  http.get('http://localhost:3000/');
+  sleep(1);
+}
+```
+
+This script runs but doesn't verify:
+- Was the status code 200?
+- Did the response arrive quickly?
+- Does the body contain expected content?
+
+<aside class="notes">
+Without validation, a test can appear to succeed even when the server is returning errors or slow responses.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Enter check(): Response Validation
+
+```javascript
+import { check } from 'k6';
+import http from 'k6/http';
+
+export default function () {
+  const res = http.get('http://localhost:3000/');
+
+  check(res, {
+    'status is 200': (r) => r.status === 200,
+    'response time < 500ms': (r) => r.timings.duration < 500,
+    'body contains products': (r) => r.body.includes('products'),
+  });
+}
+```
+
+Each assertion is a named function returning `true` (pass) or `false` (fail).
+
+<aside class="notes">
+check() takes a response object and an object of named assertions. Each assertion is evaluated and the results are tracked across all iterations.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## How check() Works
+
+```javascript
+check(res, {
+  'status is 200': (r) => r.status === 200,
+  'response time < 500ms': (r) => r.timings.duration < 500,
+});
+```
+
+- Each check runs independently
+- Failures are recorded but **do not stop the test**
+- k6 tracks pass rate across all iterations
+- Results appear in the terminal summary
+
+<aside class="notes">
+This is a key distinction: check() never stops the test. It records the result and continues. Use thresholds to make the test fail.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Check Output in Summary
+
+```
+  ✓ status is 200
+  ✓ response time < 500ms
+  ✓ body contains products
+
+     checks.........................: 100.00% ✓ 150  ✗ 0
+```
+
+The `checks` metric aggregates all check results:
+- **100.00%** = pass rate
+- **✓ 150** = number of passing checks
+- **✗ 0** = number of failing checks
+
+<aside class="notes">
+With 5 VUs and 3 checks per iteration, you'll see 150 passing checks for a 30-second test with roughly 10 iterations per VU.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The Limitation of Checks
+
+```javascript
+check(res, {
+  'status is 200': (r) => r.status === 200,
+});
+```
+
+Even if all checks fail, k6 exits with code `0` (success).
+
+**Problem:** CI/CD pipelines can't detect failures without thresholds.
+
+<aside class="notes">
+Checks are for observability, not pass/fail gates. To fail a test based on check results, you need thresholds.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Enter Thresholds: Pass/Fail Gates
+
+```javascript
+export const options = {
+  vus: 5,
+  duration: '30s',
+  thresholds: {
+    http_req_duration: ['p(95)<500'],
+    checks: ['rate>0.95'],
+  },
+};
+```
+
+Thresholds are evaluated at the end of the test:
+- If **all** thresholds pass → exit code `0`
+- If **any** threshold fails → exit code `99`
+
+<aside class="notes">
+Thresholds turn k6 into a pass/fail gate suitable for CI/CD. Exit code 99 specifically means threshold breach.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Threshold Expression Syntax
+
+```javascript
+thresholds: {
+  http_req_duration: ['p(95)<500'],
+  checks: ['rate>0.95'],
+  http_req_failed: ['rate<0.01'],
+}
+```
+
+Pattern: `<aggregation><operator><value>`
+
+| Expression | Meaning |
+|---|---|
+| `p(95)<500` | 95th percentile must be under 500ms |
+| `rate>0.95` | Pass rate must be above 95% |
+| `avg<200` | Average must be under 200ms |
+
+<aside class="notes">
+Thresholds work on any metric, built-in or custom. You can define multiple thresholds per metric.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Running Against a Healthy Service
+
+```bash
+k6 run scripts/solutions/lab-02-solution.js
+```
+
+Expected output:
+```
+  ✓ checks.........................: 100.00% ✓ 150  ✗ 0
+  ✓ http_req_duration..............: avg=4ms p(95)=12ms
+
+running (30s), 0/5 VUs, 150 complete and 0 interrupted iterations
+default ✓ [==============================] 5 VUs  30s
+```
+
+Green checkmarks indicate all thresholds passed.
+
+<aside class="notes">
+With the demo-app running normally on port 3000, both thresholds should pass easily.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Running Against a Broken Service
+
+```bash
+k6 run -e BASE_URL=http://localhost:3001 scripts/solutions/lab-02-solution.js
+```
+
+Expected output:
+```
+  ✗ checks.........................: 72.00%  ✓ 108  ✗ 42
+  ✗ http_req_duration..............: avg=1.2s p(95)=3.8s
+
+ERRO[0031] thresholds on metrics 'checks, http_req_duration' have been breached
+
+running (30s), 0/5 VUs, 150 complete and 0 interrupted iterations
+default ✗ [==============================] 5 VUs  30s
+```
+
+Red crosses and an error message indicate threshold failures.
+
+<aside class="notes">
+The broken-app on port 3001 deliberately returns slow responses and errors to demonstrate threshold failures.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Exit Codes and CI/CD
+
+```bash
+k6 run scripts/solutions/lab-02-solution.js
+echo $?
+```
+
+| Exit Code | Meaning |
+|---|---|
+| `0` | All thresholds passed |
+| `99` | One or more thresholds failed |
+| Other | Script error or runtime issue |
+
+Use exit code 99 in CI/CD pipelines to fail builds when performance degrades.
+
+<aside class="notes">
+This is the key to integrating k6 into CI/CD: the exit code tells the pipeline whether to proceed or fail.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Using Environment Variables
+
+```javascript
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+
+export default function () {
+  http.get(`${BASE_URL}/`);
+}
+```
+
+Run against different environments:
+```bash
+k6 run -e BASE_URL=http://localhost:3001 script.js
+k6 run -e BASE_URL=https://staging.example.com script.js
+```
+
+No code changes needed.
+
+<aside class="notes">
+Environment variables make scripts portable across dev, staging, and production without editing files.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- `check()` validates correctness but **never stops the test**
+- Thresholds turn k6 into a pass/fail gate for CI/CD pipelines
+- Exit code `99` specifically means threshold breach
+- The `checks` metric tracks aggregate pass rate of all check assertions
+- Use `__ENV` variables to make scripts environment-agnostic
+- The broken-app is a deliberate failure scenario for testing thresholds
+
+<aside class="notes">
+You now understand how to create self-validating load tests that can automatically fail when performance degrades.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+# Lab Complete!
+
+Ready to explore load profiles and stages
+
+<small>Navigate: [All Slides](../index.html) | [Prev: k6 Fundamentals](../01_k6_Fundamentals/index.html) | [Next: Load Profiles](../03_Load_Profiles_and_Stages/index.html)</small>
+
+<aside class="notes">
+Great work! You can now validate responses with checks and define pass/fail criteria with thresholds. Next up: ramping load with stages.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script src="../common-scripts.js"></script>
+</body>
+</html>

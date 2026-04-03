@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 12: Capstone Project</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Module 12: Capstone Project
+
+End-to-End Observability with k6 and Grafana
+
+<small>Navigate: [All Slides](../index.html) | [Prev: DataDog Migration](../11_DataDog_Migration/index.html)</small>
+
+<aside class="notes">
+This module covers Lab 29: the capstone project that brings together load testing, synthetic monitoring, SLOs, and alerting for a complete observability implementation.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The Scenario
+
+Your team shipped a new checkout feature. Before going live, you need to:
+
+1. Validate it performs correctly under load
+2. Set up continuous synthetic monitoring
+3. Define an SLO to measure reliability over time
+4. Configure alerts so right people are paged if SLO at risk
+
+**Target:** Demo-app checkout flow
+```
+GET /api/products → POST /login → POST /checkout
+```
+
+<aside class="notes">
+This mirrors the implementation you'd do for a production service on your first week with Grafana stack.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What You'll Build
+
+Complete observability stack:
+- Load test with stages, groups, thresholds, custom metrics
+- Live visualization in Grafana dashboard
+- SM scripted check for continuous monitoring
+- Grafana SLO with error budget tracking
+- Burn rate alerts wired to contact points
+
+<aside class="notes">
+By the end, you'll understand exactly where each piece lives in Grafana and how it connects.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Phase 1: Load Test the Checkout Flow
+
+Requirements:
+- **Groups:** browse, authenticate, checkout
+- **Checks** on every response
+- **Token passing:** extract from login, use in checkout
+- **Thresholds:**
+  - `http_req_duration{group:::browse}: p(95)<500`
+  - `http_req_duration{group:::authenticate}: p(95)<500`
+  - `http_req_duration{group:::checkout}: p(95)<500`
+  - `http_req_failed: rate<0.01`
+  - `checkout_success: rate>0.99`
+- **Custom metrics:** Counter `orders_placed`, Rate `checkout_success`
+
+<aside class="notes">
+Groups appear separately in Grafana dashboard — makes it easy to see which phase has latency.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Script Structure
+
+```javascript
+import http from 'k6/http';
+import { check, group, sleep } from 'k6';
+import { Counter, Rate } from 'k6/metrics';
+
+const ordersPlaced = new Counter('orders_placed');
+const checkoutSuccess = new Rate('checkout_success');
+
+export const options = {
+  stages: [
+    { duration: '30s', target: 5 },
+    { duration: '2m', target: 5 },
+    { duration: '30s', target: 0 },
+  ],
+  thresholds: {
+    'http_req_duration{group:::checkout}': ['p(95)<500'],
+    'checkout_success': ['rate>0.99'],
+  },
+};
+```
+
+<aside class="notes">
+Stages ramp to 5 VUs, sustain for 2 minutes, ramp down. Thresholds enforce business SLOs in CI.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Default Function with Groups
+
+```javascript
+export default function () {
+  group('browse', () => {
+    const res = http.get('http://localhost:3000/api/products');
+    check(res, { 'products status 200': (r) => r.status === 200 });
+  });
+
+  group('authenticate', () => {
+    const loginRes = http.post('http://localhost:3000/login', payload);
+    check(loginRes, { 'login status 200': (r) => r.status === 200 });
+    const token = JSON.parse(loginRes.body).token;
+  });
+
+  group('checkout', () => {
+    const checkoutRes = http.post('http://localhost:3000/checkout', data);
+    if (checkoutRes.status === 201) {
+      ordersPlaced.add(1);
+      checkoutSuccess.add(true);
+    }
+  });
+
+  sleep(1);
+}
+```
+
+<aside class="notes">
+Don't let failed login silently break checkout step — check every response.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Running with InfluxDB Output
+
+```bash
+k6 run --out influxdb=http://localhost:8086/k6 \
+  scripts/solutions/lab-29-solution.js
+```
+
+Watch real-time progress. While running, open Grafana dashboard.
+
+<aside class="notes">
+Metrics flow to InfluxDB in real-time. Grafana dashboard updates live during test run.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Viewing Results in Grafana
+
+Navigate to k6 Load Testing Results dashboard.
+
+Look for:
+1. **Request Duration** panel — three distinct lines for three groups
+2. **VUs** panel — confirm ramp-up stages executed correctly
+3. **Threshold Results** panel — all thresholds passing (green)
+4. **Custom Metrics** panel — `orders_placed` and `checkout_success`
+
+<aside class="notes">
+If any threshold fails, check which group has elevated latency and examine demo-app logs.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Phase 2: Set Up Synthetic Monitoring
+
+Adapt load test script for SM:
+1. Copy to new file: `lab-29-sm-check.js`
+2. Remove `export const options` block
+3. Point to staging URL or use private probe for localhost
+4. Keep all checks and groups
+
+SM calls default function once per probe execution (not looped).
+
+<aside class="notes">
+For production deployment, use staging URL SM probes can reach. For workshop, configure private probe or use httpbin.org as stand-in.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Uploading to SM
+
+SM → Add Check → Scripted
+
+```yaml
+Job name: Checkout Flow
+Target: http://localhost:3000 (or staging URL)
+Frequency: 5 minutes
+Probes: 3 locations (US East, EU West, AP Singapore)
+Labels: service=checkout, env=prod, team=backend
+```
+
+Verify check runs successfully within 5 minutes.
+
+<aside class="notes">
+If using private probe from Lab 25: deselect public probes, select private probe, target localhost:3000.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Adding HTTP Availability Check
+
+Alongside scripted check, create lightweight HTTP check:
+
+```yaml
+Check type: HTTP
+Target: http://localhost:3000/health
+Job name: Checkout Service Health
+Frequency: 1 minute (faster than scripted check)
+Probes: same 3 locations
+Expected status: 200
+```
+
+<aside class="notes">
+Two complementary checks: deep scripted check every 5 min validates full flow; lightweight health check every 1 min gives faster outage signal.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Phase 3: Define an SLO
+
+SM → SLOs → Create SLO
+
+```yaml
+Name: Checkout Flow SLO
+Description: 99.5% of checkout checks succeed over 7-day window
+SLI type: Success rate
+Check: Checkout Flow scripted check
+Target: 99.5%
+Rolling window: 7 days
+```
+
+Grafana auto-calculates error budget: ~50 minutes allowable failure per week.
+
+<aside class="notes">
+After saving, SM shows current status, error budget remaining, burn rate graph, and compliance history.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## SLO Dashboard
+
+View automatically generated dashboard:
+- **Current status** badge (In budget / Breach risk / Breached)
+- **Error budget remaining** (percentage and minutes/hours)
+- **Burn rate graph** (current vs 1× baseline)
+- **SLO compliance chart** (historical green/red areas)
+
+<aside class="notes">
+Error budget remaining is most actionable number — tells you how much runway you have.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Phase 4: Configure Alerting
+
+Add burn rate alerts to SLO:
+
+**Fast burn (page-worthy):**
+```yaml
+Burn rate: 14×
+Window: 5 minutes
+Severity: critical
+```
+At 14×, 7-day budget exhausted in ~12 hours
+
+**Slow burn (ticket-worthy):**
+```yaml
+Burn rate: 2×
+Window: 1 hour
+Severity: warning
+```
+At 2×, budget exhausted in ~3.5 days
+
+<aside class="notes">
+Fast burn warrants immediate investigation. Slow burn warrants reliability investigation before budget runs out.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Verify Contact Point
+
+Alerting → Contact Points
+
+1. Verify contact point from Lab 22 still configured
+2. Click **Test** to send test notification
+3. Ensure Notification Policy routes `severity=critical` to contact point
+
+SLO burn rate alerts fire through Notification Policy routing tree.
+
+<aside class="notes">
+Same notification infrastructure used for SLO alerts, SM check failures, and metric alerts — unified alerting.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The Full Picture Comparison
+
+| What You Built | k6 / Grafana | DataDog Equivalent |
+|---|---|---|
+| Load test | k6 local run with stages, groups | DD Synthetic Load Testing |
+| Scripted monitor | SM Scripted Check (k6 JS) | DD Multistep API Test |
+| Availability check | SM HTTP Check | DD Synthetic API Test |
+| SLO | Grafana SM SLO | DD SLO |
+| Burn rate alert | Grafana Alert Rule (auto-generated) | DD SLO alert |
+| Notification routing | Notification Policy (label-based) | Monitor message @-handles |
+| Dashboard | Grafana (auto-generated from SM) | DD Dashboard |
+
+<aside class="notes">
+All in one platform: Grafana Cloud unifies load testing, synthetic monitoring, SLOs, alerting. Same platform, integrated workflow.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## One Language, Three Use Cases
+
+k6 JavaScript powers:
+1. **Local load testing** — stages, thresholds, custom metrics
+2. **SM scripted checks** — continuous synthetic monitoring
+3. **SM browser checks** — UI validation
+
+No separate language or format for each use case.
+
+<aside class="notes">
+This is the key insight: learn k6 once, use it for load testing, scripted checks, and browser checks. No context switching.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## One Platform, All Signals
+
+Grafana unifies:
+- Load test results (InfluxDB → Grafana dashboard)
+- Synthetic monitoring status and history
+- SLO error budget tracking
+- Alert rules and notification routing
+- Logs (Loki), traces (Tempo), metrics (Mimir)
+
+<aside class="notes">
+Same mental model everywhere: check → SLO → alert applies to synthetics, metrics, logs, traces.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## One Mental Model
+
+The pattern applies everywhere:
+
+**Check** → passing check is a probe_success=1 data point
+
+**SLO** → defines how many failures are acceptable over time
+
+**Alert** → burn rate tells you when failing too fast
+
+<aside class="notes">
+This is the same model DataDog uses, just implemented with open standards and open-source tooling.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Expected Output: Load Test
+
+```
+✓ products status 200
+✓ login status 200
+✓ checkout status 2xx
+
+checks.........................: 100.00% ✓ 360  ✗ 0
+http_req_duration..............: avg=8.4ms   p(95)=21.3ms
+orders_placed..................: 60
+checkout_success...............: 100.00% ✓ 60   ✗ 0
+
+✓ http_req_duration{group:::browse}: p(95)<500
+✓ http_req_duration{group:::checkout}: p(95)<500
+✓ checkout_success: rate>0.99
+```
+
+<aside class="notes">
+All checks passing, all thresholds passing. Custom metrics track business outcomes alongside infrastructure metrics.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Expected Output: SM Check
+
+SM check shows green for all probe locations within 5 minutes of creation.
+
+Check detail page displays:
+- Pass/fail status per probe
+- Response times by location
+- Each `check()` call as named assertion
+- Groups visible in check results
+
+<aside class="notes">
+Groups from load test script become filterable dimensions in SM check results — organizational benefit carries through.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Expected Output: SLO
+
+SLO dashboard shows:
+- 100% success rate (all checks passing)
+- Full error budget intact
+- Burn rate near 0× (no failures)
+- Green compliance history
+
+<aside class="notes">
+After first few successful check runs, SLO shows healthy state. Budget only consumed when checks fail.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Expected Output: Alerting
+
+Alert rule in Normal state (not firing).
+
+Test notification delivered to contact point.
+
+Notification Policy shows routing tree:
+- severity=critical → PagerDuty
+- severity=warning → Slack
+
+<aside class="notes">
+Test with temporary low threshold to verify full notification path works end-to-end.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What You've Mastered
+
+**One language** (k6 JavaScript) for:
+- Local load testing
+- SM scripted checks
+- SM browser checks
+
+**One platform** (Grafana) for:
+- Load test results
+- Synthetic monitoring
+- SLO tracking
+- Alerting and routing
+
+**One mental model** everywhere:
+- Check → SLO → Alert
+
+<aside class="notes">
+This is what a single week with Grafana stack gives you. Everything interconnected, open standards throughout.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Architectural Advantages
+
+Open-source core:
+- k6 OSS is free forever for local execution
+- All test scripts are plain JavaScript files you own
+- No vendor lock-in on test format
+
+Unified observability:
+- Same platform for metrics, logs, traces, synthetics
+- Single query language (PromQL) across all metrics
+- Notification Policies decouple routing from rules
+
+<aside class="notes">
+Everything you built today is open-format. Scripts are version-controlled JavaScript files, runnable in any CI/CD pipeline.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Production Readiness Checklist
+
+You now know how to:
+- Write realistic load tests with stages, groups, thresholds
+- Visualize results live in Grafana dashboards
+- Convert load tests to SM scripted checks
+- Define SLOs with error budgets and burn rate alerts
+- Configure notification routing by severity labels
+- Monitor internal services with private probes
+- Migrate from DataDog synthetic tests and monitors
+
+<aside class="notes">
+These skills transfer directly to production implementations. The patterns you learned apply at any scale.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Next Steps
+
+After this workshop:
+1. Apply to your own services in staging environment
+2. Set up private probe for internal service monitoring
+3. Define SLOs for critical user journeys
+4. Wire burn rate alerts to on-call rotation
+5. Integrate k6 tests into CI/CD pipeline
+6. Explore Grafana community dashboards (3000+ templates)
+
+<aside class="notes">
+Start with one critical service. Build complete stack: load test → SM check → SLO → alert. Then expand.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- One k6 script serves as load test and SM scripted check
+- Groups become filterable dimensions in dashboards and SM results
+- Custom metrics track business outcomes alongside infrastructure metrics
+- SLO → burn rate alert is the most important alerting pattern
+- Notification Policies decouple who gets paged from what fires alert
+- Everything is open-format: scripts are JavaScript files you own
+- k6 + Grafana gives complete observability from single platform
+
+<aside class="notes">
+Capstone complete. You've built production-ready observability stack from scratch using open standards and open-source tools.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+# Thank You
+
+Questions?
+
+**Resources:**
+- k6 Documentation: https://k6.io/docs/
+- Grafana Documentation: https://grafana.com/docs/
+- k6 Community: https://community.grafana.com/c/grafana-k6/
+- Workshop Repository: Your local k6workshop-dev directory
+
+<aside class="notes">
+This workshop covered 29 labs across 12 modules. You're now equipped to implement k6 and Grafana observability in your own environment.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ],
+            slideNumber: 'c/t',
+            showSlideNumber: 'all'
+        });
+    </script>
+</body>
+</html>

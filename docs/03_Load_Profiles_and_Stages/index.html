@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 03: Load Profiles and Stages</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Lab 03: Load Profiles and Stages
+
+Ramping Load for Realistic Testing
+
+<small>Navigate: [All Slides](../index.html) | [Prev: HTTP Testing](../02_HTTP_Testing_Checks_Thresholds/index.html) | [Next: Advanced Scripting](../04_Advanced_Scripting/index.html)</small>
+
+<aside class="notes">
+This module teaches you how to create realistic load profiles with ramp-up, sustain, and ramp-down stages.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What You'll Learn
+
+- How to define ramp-up / sustain / ramp-down load shapes with `options.stages`
+- How to watch VU count change in real-time during a run
+- How to use the `ramping-vus` executor with `scenarios`
+- The difference between `constant-vus` and `ramping-vus` executors
+- The concept of open vs. closed model load testing
+
+<aside class="notes">
+By the end of this lab, you'll be able to model realistic traffic patterns that reveal how systems behave under gradual load increases.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The Problem with Fixed VUs
+
+```javascript
+export const options = {
+  vus: 10,
+  duration: '2m',
+};
+```
+
+This creates instant load at t=0:
+- No warm-up period for the server
+- No gradual increase to observe scaling behavior
+- Abrupt stop at the end
+
+Real traffic doesn't work this way.
+
+<aside class="notes">
+Fixed VU counts don't reveal how systems handle gradual load increases, connection pool saturation, or scale-down behavior.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Enter Stages: Gradual Load Ramping
+
+```javascript
+export const options = {
+  stages: [
+    { duration: '30s', target: 10 },  // ramp up to 10 VUs
+    { duration: '1m',  target: 10 },  // hold 10 VUs
+    { duration: '30s', target: 0  },  // ramp down to 0
+  ],
+};
+```
+
+Total duration: 30s + 60s + 30s = **2 minutes**
+
+k6 starts with 0 VUs, linearly increases to 10, holds, then decreases back to 0.
+
+<aside class="notes">
+Stages replace the vus and duration options. Each stage specifies a target VU count and the duration to reach it.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## How Stages Work
+
+```javascript
+stages: [
+  { duration: '30s', target: 10 },  // Stage 1
+  { duration: '1m',  target: 10 },  // Stage 2
+  { duration: '30s', target: 0  },  // Stage 3
+]
+```
+
+| Stage | Duration | Target | Behavior |
+|---|---|---|---|
+| 1 | 30s | 10 | Linear ramp from 0 → 10 VUs |
+| 2 | 1m | 10 | Hold at 10 VUs |
+| 3 | 30s | 0 | Linear ramp from 10 → 0 VUs |
+
+<aside class="notes">
+k6 interpolates VU count linearly between stages. If the previous stage ended at 5 VUs and the next targets 10, k6 adds VUs gradually over the stage duration.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Watching VUs Change in Real-Time
+
+```bash
+k6 run scripts/starters/lab-03-starter.js
+```
+
+Progress line during execution:
+```
+default   [  25% ] 2/10 VUs  15s/2m0s
+default   [  58% ] 10/10 VUs  1m10s/2m0s
+default   [  92% ] 1/10 VUs  1m50s/2m0s
+```
+
+The `2/10 VUs` shows current vs. target.
+
+<aside class="notes">
+Watch the VU count climb during ramp-up, stay flat during sustain, and fall during ramp-down. This confirms your load profile is behaving as expected.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Stage Patterns: Spike Test
+
+```javascript
+stages: [
+  { duration: '10s', target: 0   },  // baseline
+  { duration: '5s',  target: 50  },  // sudden spike
+  { duration: '10s', target: 50  },  // hold peak
+  { duration: '5s',  target: 0   },  // drop
+]
+```
+
+Use case: Testing autoscaling response or cache warming.
+
+<aside class="notes">
+Spike tests reveal how systems handle sudden traffic surges. Watch for connection pool exhaustion or circuit breaker activation.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Stage Patterns: Soak Test
+
+```javascript
+stages: [
+  { duration: '5m',  target: 10  },  // ramp up
+  { duration: '6h',  target: 10  },  // sustain for hours
+  { duration: '5m',  target: 0   },  // ramp down
+]
+```
+
+Use case: Testing memory leaks, connection pool exhaustion, log disk usage.
+
+<aside class="notes">
+Soak tests run for extended periods to reveal issues that only manifest over time, like gradual memory growth or connection leaks.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The Scenarios API: More Control
+
+```javascript
+export const options = {
+  scenarios: {
+    load_profile: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '30s', target: 10 },
+        { duration: '1m',  target: 10 },
+        { duration: '30s', target: 0  },
+      ],
+      gracefulRampDown: '10s',
+    },
+  },
+};
+```
+
+`stages` is syntactic sugar for a single `ramping-vus` scenario.
+
+<aside class="notes">
+The scenarios API offers more control and the ability to run multiple independent load shapes simultaneously.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## gracefulRampDown Explained
+
+```javascript
+scenarios: {
+  load_profile: {
+    executor: 'ramping-vus',
+    stages: [
+      { duration: '1m', target: 10 },
+      { duration: '30s', target: 0 },
+    ],
+    gracefulRampDown: '10s',
+  },
+}
+```
+
+**gracefulRampDown** gives in-flight iterations time to finish before VUs are removed.
+
+Without it, long-running iterations may be abruptly terminated.
+
+<aside class="notes">
+This is useful when iterations take longer than the ramp-down period. It prevents abrupt termination and incomplete data points.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The constant-vus Executor
+
+```javascript
+scenarios: {
+  constant_load: {
+    executor: 'constant-vus',
+    vus: 10,
+    duration: '1m',
+  },
+}
+```
+
+Equivalent to the simple `vus` + `duration` options from Lab 01.
+
+Use when you want a flat, stable load with no ramp-up.
+
+<aside class="notes">
+constant-vus is useful for baseline tests or when you want to measure steady-state performance without load variation.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Open vs. Closed Model: Concept
+
+| Model | Controls | Executor | Good For |
+|---|---|---|---|
+| **Closed** | Concurrent VUs | `ramping-vus`, `constant-vus` | Simulating a fixed user pool |
+| **Open** | Requests/sec | `constant-arrival-rate`, `ramping-arrival-rate` | Simulating external traffic rate |
+
+**Closed model:** New iteration starts only when VU finishes current iteration.
+
+**Open model:** k6 tries to start a fixed number of iterations per second regardless of how long they take.
+
+<aside class="notes">
+Closed models are more realistic for user-driven scenarios. Open models are better for API load testing where request rate is the constraint.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Example: Closed vs. Open Behavior
+
+**Closed (ramping-vus):**
+- 10 VUs, each iteration takes 2s
+- Throughput: ~5 requests/sec (stable)
+
+**Open (constant-arrival-rate):**
+- Target: 10 requests/sec, each request takes 2s
+- k6 spawns new VUs dynamically to maintain rate
+- VU count grows if requests slow down
+
+<aside class="notes">
+Closed models have bounded VU counts. Open models can grow VUs unbounded if the server slows down, which can accidentally DoS the target.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Summary Output with Stages
+
+```
+     http_req_duration..............: avg=4ms  min=1ms  med=3ms  max=22ms  p(90)=7ms  p(95)=9ms
+     iterations.....................: 240     4/s
+     vus............................: 0       min=0   max=10
+     vus_max........................: 10      min=10  max=10
+```
+
+The `vus` line shows `min=0 max=10`, confirming the ramping behavior.
+
+<aside class="notes">
+The vus_max metric shows the maximum VU count allocated. This is useful for capacity planning in cloud environments.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- `stages` is the fastest way to define ramp-up/sustain/ramp-down patterns
+- `scenarios` offers explicit control and the ability to run multiple load shapes simultaneously
+- `ramping-vus` is a closed-model executor — VU count is the control variable
+- `gracefulRampDown` prevents abrupt termination of long-running iterations
+- Watch the live progress line to confirm your load profile behaves as expected
+- Open model executors (`constant-arrival-rate`) will be covered in later labs
+
+<aside class="notes">
+You now understand how to create realistic load profiles that reveal how systems behave under gradual load increases and decreases.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+# Lab Complete!
+
+Ready to organize tests with groups and tags
+
+<small>Navigate: [All Slides](../index.html) | [Prev: HTTP Testing](../02_HTTP_Testing_Checks_Thresholds/index.html) | [Next: Advanced Scripting](../04_Advanced_Scripting/index.html)</small>
+
+<aside class="notes">
+Great work! You can now create realistic ramping load profiles. Next up: organizing complex tests with groups, tags, and custom metrics.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script src="../common-scripts.js"></script>
+</body>
+</html>

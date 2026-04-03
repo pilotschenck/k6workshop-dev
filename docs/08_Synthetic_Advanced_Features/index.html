@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 08: Synthetic Advanced Features</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Module 08: Synthetic Advanced Features
+
+Structured Logging, Custom Metrics, Extensions, Alerting, and SLOs
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Synthetic Basics](../07_Synthetic_Monitoring_Basics/index.html) | [Next: Browser Testing](../09_Browser_Testing/index.html)</small>
+
+<aside class="notes">
+This module covers Labs 19-23: structured logging, custom metrics, k6 extensions, alerting on SM results, and SLOs with error budgets.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Module Overview
+
+Advanced k6 and Grafana SM features:
+- **Lab 19:** Structured logging (JSON format, log levels, VU context)
+- **Lab 20:** Custom metrics (Counter, Gauge, Rate, Trend)
+- **Lab 21:** k6 extensions and the xk6 ecosystem
+- **Lab 22:** Alerting on synthetic monitoring results
+- **Lab 23:** SLOs and error budgets
+
+<aside class="notes">
+These features transform k6 from a simple load testing tool into a complete observability platform component.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 19: Structured Logging
+
+k6 supports four console log levels:
+
+| Method | Level | When to use |
+|--------|-------|-------------|
+| `console.log` | info | General trace messages |
+| `console.info` | info | Informational milestones |
+| `console.warn` | warn | Unexpected-but-not-failing conditions |
+| `console.error` | error | Failures, assertion errors |
+
+All output goes to **stderr** by default.
+
+<aside class="notes">
+In CI, redirect stderr to a file: k6 run script.js 2>k6-logs.txt
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## JSON Log Format
+
+Enable structured logging:
+
+```bash
+k6 run --log-format json script.js
+```
+
+Output:
+```json
+{
+  "level":"info",
+  "msg":"product count: 5",
+  "source":"console",
+  "time":"2024-01-15T10:23:45.123Z"
+}
+```
+
+Compatible with Grafana Loki without transformation.
+
+<aside class="notes">
+Any log shipper (Promtail, Fluent Bit, Logstash) can parse and forward this without custom parsing rules.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Writing Logs to File
+
+Separate log output from progress display:
+
+```bash
+mkdir -p logs
+k6 run --log-output file=logs/test.log \
+       --log-format json script.js
+```
+
+Filter with jq:
+```bash
+cat logs/test.log | jq 'select(.level == "error")'
+```
+
+<aside class="notes">
+Makes both logs and progress output more readable by separating them.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Embed VU and Iteration Context
+
+Use global variables in log messages:
+
+```javascript
+const productsRes = http.get('http://localhost:3000/api/products');
+console.log(`VU ${__VU} iter ${__ITER}: /api/products → ${productsRes.status}`);
+```
+
+Output:
+```
+INFO[0001] VU 1 iter 0: /api/products → 200
+INFO[0001] VU 2 iter 0: /api/products → 200
+INFO[0003] VU 1 iter 1: /api/products → 200
+```
+
+<aside class="notes">
+With VU and iteration context, you can reconstruct the exact sequence of events for a failing VU.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Conditional Logging Pattern
+
+Log only on failure to reduce volume:
+
+```javascript
+const loginOk = check(loginRes, {
+  'login status 200': (r) => r.status === 200,
+});
+
+if (!loginOk) {
+  console.error(
+    `VU ${__VU} iter ${__ITER}: login FAILED — ` +
+    `status=${loginRes.status} body=${loginRes.body.substring(0, 200)}`
+  );
+}
+```
+
+<aside class="notes">
+Silence during healthy runs, precise diagnostic output when something breaks — no post-hoc log archaeology.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 20: Custom Metrics
+
+Four metric types:
+
+| Type | Tracks | Value Behavior | Example |
+|------|--------|----------------|---------|
+| Counter | Cumulative sum | Always increases | Total orders placed |
+| Gauge | Point-in-time value | Last sample wins | Active sessions |
+| Rate | Ratio of truthy adds | Value 0-1 | Login success rate |
+| Trend | Statistical distribution | Stores all samples | Cart total, page size |
+
+<aside class="notes">
+Custom metrics let you track business logic success, not just HTTP performance.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Defining Custom Metrics
+
+```javascript
+import { Counter, Gauge, Rate, Trend } from 'k6/metrics';
+
+const ordersPlaced = new Counter('orders_placed');
+const activeUsers = new Gauge('active_users');
+const loginSuccessRate = new Rate('login_success_rate');
+const cartValueTrend = new Trend('cart_value_usd', false);
+```
+
+`false` in Trend constructor means "not a time duration" (it's a dollar value).
+
+<aside class="notes">
+These definitions create the metric objects. Nothing is recorded until you call .add() in the default function.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Recording Metric Values
+
+```javascript
+// Rate: login success
+loginSuccessRate.add(loginRes.status === 200);
+
+// Counter: orders placed
+if (checkoutRes.status === 201) {
+  ordersPlaced.add(1);
+
+  const body = JSON.parse(checkoutRes.body);
+  if (body.total) {
+    cartValueTrend.add(parseFloat(body.total));
+  }
+}
+
+// Gauge: active VU snapshot
+activeUsers.add(__VU);
+```
+
+<aside class="notes">
+Rate accepts boolean values. Counter increments by the added value. Trend stores every sample for statistical analysis.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Thresholds on Custom Metrics
+
+```javascript
+export const options = {
+  thresholds: {
+    'login_success_rate': ['rate>0.95'],
+    'orders_placed': ['count>10'],
+    'cart_value_usd': ['p(95)<200'],
+  },
+};
+```
+
+If any threshold fails, k6 exits with non-zero status — CI pipeline fails the build.
+
+<aside class="notes">
+This is how you enforce business SLOs, not just infrastructure SLOs, in your CI/CD pipeline.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Tagging Metric Samples
+
+Add tags for dashboard filtering:
+
+```javascript
+cartValueTrend.add(parseFloat(body.total), {
+  product_category: 'electronics'
+});
+
+loginSuccessRate.add(loginRes.status === 200, {
+  user_tier: 'premium'
+});
+```
+
+Tags appear as labels in Prometheus, fields in InfluxDB — filter in Grafana panels.
+
+<aside class="notes">
+No per-distinct-tag-combination pricing like DataDog. Define as many domain-specific metrics as needed.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 21: k6 Extensions
+
+k6 is extensible via **xk6** (extend k6) build system.
+
+**Experimental built-ins** (no custom build needed):
+- `k6/experimental/browser` — Chromium automation
+- `k6/experimental/tracing` — distributed trace context
+- `k6/experimental/redis` — Redis client
+- `k6/experimental/websockets` — WebSocket client
+
+<aside class="notes">
+Called "experimental" because APIs may stabilize and move to non-experimental paths — not because they're unstable.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## WebSocket Test Example
+
+```javascript
+import { WebSocket } from 'k6/experimental/websockets';
+
+export default function () {
+  const ws = new WebSocket('ws://localhost:8765');
+
+  ws.onopen = () => {
+    ws.send('hello from k6');
+  };
+
+  ws.onmessage = (event) => {
+    console.log('received:', event.data);
+    ws.close();
+  };
+
+  sleep(2);
+}
+```
+
+<aside class="notes">
+No extra install needed — the experimental module ships with the official k6 binary.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The xk6 Build System
+
+For extensions not shipped with the binary:
+
+```bash
+# 1. Install xk6 (requires Go 1.21+)
+go install go.k6.io/xk6/cmd/xk6@latest
+
+# 2. Build custom k6 binary with extensions
+xk6 build --with github.com/grafana/xk6-sql@latest
+
+# 3. Run tests with custom binary
+./k6 run my-sql-test.js
+```
+
+<aside class="notes">
+The resulting ./k6 binary in your working directory replaces the system k6 for that test.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Finding Extensions
+
+Extension catalog: **https://k6.io/docs/extensions/explore/**
+
+Categories:
+- **Data formats:** xk6-faker, xk6-csv
+- **Messaging:** xk6-kafka, xk6-amqp
+- **Databases:** xk6-sql, xk6-redis
+- **Protocols:** xk6-grpc-web, xk6-stomp, xk6-ssh
+- **Utilities:** xk6-dashboard, xk6-timers
+
+Before using: check last commit date, tests, and whether Grafana maintains it.
+
+<aside class="notes">
+Prefer Grafana-maintained extensions where available. Check GitHub stars and maintenance activity for community extensions.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 22: Alerting on SM Results
+
+Grafana Synthetic Monitoring integrates with Grafana Alerting.
+
+**Auto-generated rules** per check:
+- Uptime alert (drops below threshold)
+- Response time alert (p95 exceeds threshold)
+
+**Custom rules** on SM metrics:
+```promql
+avg_over_time(probe_success{job="Workshop Demo"}[5m])
+```
+
+<aside class="notes">
+SM auto-generates uptime and response time rules. You can customize thresholds or create entirely new rules from scratch.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Customizing Alert Rules
+
+Edit auto-generated uptime alert:
+1. Change threshold from `< 0.75` to `< 0.99` (99% uptime)
+2. Set pending period to `5m` (avoid false positives)
+3. Add labels:
+   - `severity: warning`
+   - `team: platform`
+
+Labels drive notification routing.
+
+<aside class="notes">
+For critical services, create two rules: warning at 99% with 5-min window, critical at 95% with 1-min window.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Contact Points and Notification Policies
+
+**Contact Point** — where notifications go (email, Slack, PagerDuty)
+
+**Notification Policy** — routing by labels
+```yaml
+Matcher: severity = critical
+Contact point: PagerDuty
+Repeat interval: 1h
+```
+
+Separate policies for warning (Slack) and critical (PagerDuty).
+
+<aside class="notes">
+Labels on alert rules drive routing. Change routing without touching alert rules — decouple who gets paged from what fires.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Mute Timings
+
+Suppress notifications during planned maintenance:
+
+```yaml
+Name: Weekly maintenance
+Days: Sunday
+Time range: 02:00–04:00
+```
+
+Apply to notification policy. Alerts still fire and appear in Grafana; notifications are simply not sent.
+
+<aside class="notes">
+Mute timings suppress notifications without disabling alert rules. Perfect for scheduled deployments or maintenance windows.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 23: SLOs and Error Budgets
+
+Key concepts:
+
+**SLI** — Service Level Indicator (measurement):
+`successful_checks / total_checks`
+
+**SLO** — Service Level Objective (target):
+"SLI >= 99.5% over last 30 days"
+
+**Error Budget** — allowed headroom for failures:
+99.5% target = 0.5% failure budget
+
+<aside class="notes">
+For a check running every minute (43,200 runs/month), 0.5% budget = 216 failures = 3.6 hours downtime.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Burn Rate
+
+How fast you consume error budget relative to baseline:
+- **1.0x** — on track to use exactly 100% by window end
+- **14x** — failures 14× faster than baseline (budget exhausted in ~2 days)
+
+Burn rate is a **leading indicator** — tells you when to act before budget runs out.
+
+<aside class="notes">
+A 10-minute outage at 200× burn rate fires fast-burn alerts immediately, even if budget percentage consumed looks small.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Creating an SLO in SM
+
+```yaml
+Name: Workshop Demo SLO
+Description: Uptime SLO for Workshop Demo HTTP check
+SLI type: Success rate
+Check: Workshop Demo
+Target: 99.5%
+Rolling window: 30 days
+```
+
+Grafana auto-generates error budget dashboard and calculations.
+
+<aside class="notes">
+After saving, SM shows current status, error budget remaining, burn rate graph, and compliance history.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Burn Rate Alerts
+
+Two horizons:
+
+**Fast burn (page-worthy):**
+- Burn rate: 14×
+- Window: 5 minutes
+- Severity: critical
+- At 14×, 30-day budget exhausted in ~2 days
+
+**Slow burn (ticket-worthy):**
+- Burn rate: 3×
+- Window: 60 minutes
+- Severity: warning
+- At 3×, budget exhausted in ~10 days
+
+<aside class="notes">
+Fast burn warrants immediate investigation. Slow burn warrants reliability investigation before budget runs out.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Error Budget Policies
+
+Team agreement for decision-making:
+
+| Budget Remaining | Action |
+|------------------|--------|
+| > 50% | Ship freely; reliability position strong |
+| 20-50% | Exercise caution; every deploy carries risk |
+| < 20% | Stop features; prioritize reliability |
+| 0% | Feature freeze; mandatory reliability sprint |
+
+Post this policy in team Slack/wiki.
+
+<aside class="notes">
+The policy works only if engineers trust the SLI measurement. SM probes are independent of app infrastructure — measure what users experience.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Error Budget Math Example
+
+Setup:
+- SLO: 99.5% over 30 days
+- Check frequency: 1 minute
+- Total runs: 43,200
+
+Allowed failures: 216 (0.5% of 43,200)
+
+**Scenario:** 10-minute outage (10 consecutive failures)
+- Budget consumed: 10/216 = 4.6% in 10 minutes
+- Burn rate: 200×
+
+<aside class="notes">
+10 minutes is minor in absolute terms, but at 200× burn rate the fast-burn alert fires within seconds — exactly as intended.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- Structured logging with JSON format integrates with Grafana Loki
+- Custom metrics (Counter, Gauge, Rate, Trend) track business outcomes
+- k6 extensions add capabilities beyond HTTP (WebSockets, gRPC, SQL, Kafka)
+- SM auto-generates alert rules; customize thresholds and add custom rules
+- Notification Policies route by labels — decouple routing from rules
+- SLOs define reliability targets; error budgets are finite allowances
+- Burn rate alerts are leading indicators — act before budget exhausted
+
+<aside class="notes">
+These advanced features complete the Grafana LGTM observability stack: Loki (logs), Grafana (dashboards), Tempo (traces), Mimir (metrics).
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ],
+            slideNumber: 'c/t',
+            showSlideNumber: 'all'
+        });
+    </script>
+</body>
+</html>

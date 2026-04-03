@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 11: DataDog Migration</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Module 11: DataDog Migration
+
+Concept Mapping and Practical Migration Paths
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Observability Integration](../10_Observability_Integration/index.html) | [Next: Capstone Project](../12_Capstone_Project/index.html)</small>
+
+<aside class="notes">
+This module covers Labs 26-28: DataDog concept mapping, migrating DD synthetic tests to k6, and migrating DD monitors to Grafana alerting.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Module Overview
+
+Migration reference guides:
+- **Lab 26:** DataDog to Grafana concept mapping
+- **Lab 27:** Migrating DD synthetic tests to k6
+- **Lab 28:** Migrating DD monitors to Grafana alerting
+
+These are structured references, not sales pitches — practical translation layers.
+
+<aside class="notes">
+Goal is not to convince one platform is better. It's to help you re-orient quickly if coming from DataDog.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 26: Concept Mapping Table
+
+Every DD concept has a Grafana/k6 equivalent:
+
+| DataDog | Grafana / k6 |
+|---|---|
+| Synthetic API Test | SM HTTP Check |
+| Synthetic Browser Test | SM Browser Check |
+| Multistep API Test | SM Scripted Check |
+| Synthetic Recorder | k6 Studio |
+| Private Location | SM Private Probe |
+
+<aside class="notes">
+The naming differs but the logical structure is the same. This table is your Rosetta Stone.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Alerting Concept Map
+
+| DataDog | Grafana |
+|---|---|
+| DD Monitor | Grafana Alert Rule |
+| DD Notification Channel | Grafana Contact Point |
+| DD Notification Rules | Grafana Notification Policy |
+| DD Downtime | Grafana Mute Timing |
+| DD SLO | Grafana SM SLO |
+
+<aside class="notes">
+Biggest mental shift: Grafana Notification Policies decouple routing from alert rule definitions.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Observability Stack Map
+
+| DataDog | Grafana |
+|---|---|
+| DD APM | Grafana Tempo (traces) |
+| DD Log Management | Grafana Loki |
+| DD Metrics | Grafana Mimir / Prometheus |
+| DD Dashboards | Grafana Dashboards |
+| DD Agent | Grafana Alloy |
+| DD Custom Metrics | k6 Custom Metrics |
+
+<aside class="notes">
+All use open standards: OpenTelemetry, Jaeger, PromQL, LogQL. Same mental model, different query languages.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Check Types Comparison
+
+| DD Check Type | SM Equivalent | Key Difference |
+|---|---|---|
+| API Test (HTTP) | SM HTTP Check | Both config-driven |
+| API Test (DNS) | SM DNS Check | Functionally identical |
+| API Test (TCP) | SM TCP Check | Functionally identical |
+| API Test (gRPC) | SM scripted check with k6/net/grpc | No native SM gRPC type |
+| Multistep API Test | SM Scripted Check | DD uses step-builder UI; SM uses k6 JS |
+| Browser Test | SM Browser Check | DD uses recorder; SM uses k6 browser JS |
+
+<aside class="notes">
+Key SM advantage: every scripted check and browser check runs same k6 JavaScript as load testing. No second language.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Where DD Has an Edge
+
+Honest assessment:
+
+- DD UI more polished, easier for non-technical users
+- DD Watchdog (automated anomaly detection) — no OSS Grafana equivalent
+- Synthetic test recorder produces tests faster for non-developers
+- Longer track record in large enterprise environments
+
+<aside class="notes">
+DD's no-code recorder and polished UI are real advantages for non-technical users.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Where Grafana/k6 Has an Edge
+
+- k6 fully open source (AGPL) — core never paywalled
+- All test scripts are plain JavaScript files you own
+- Larger open-source community — 3000+ dashboard templates
+- Unified alerting across metrics, logs, traces, synthetics
+- Self-hosted option with no licensing cost
+- k6 scripting knowledge transfers to load testing and synthetic monitoring
+
+<aside class="notes">
+k6 scripting knowledge is shared across load testing, scripted checks, and browser tests — one skill, multiple use cases.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 27: Migrating DD Synthetic Tests
+
+Field-by-field mapping from DD test JSON to k6 script:
+
+| DD Field | Grafana Destination |
+|---|---|
+| config.request.method | `http.get(url)` or `http.post(url)` |
+| config.request.url | First argument to http.get/post |
+| config.request.headers | `params.headers` object |
+| config.request.timeout | `params.timeout = '30s'` |
+| config.assertions | `check(res, { ... })` |
+| locations | SM probe location selection |
+| options.tick_every | SM check frequency |
+
+<aside class="notes">
+Translation is mechanical once you know the pattern. Every DD field has a k6 destination.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Assertion Translation Table
+
+| DD Assertion | k6 `check()` equivalent |
+|---|---|
+| statusCode is 200 | `'status 200': (r) => r.status === 200` |
+| responseTime lessThan 2000 | `'fast response': (r) => r.timings.duration < 2000` |
+| body contains "token" | `'has token': (r) => r.body.includes('token')` |
+| body matches regex | `'numeric id': (r) => /^\d{4}$/.test(r.body)` |
+| header contains "json" | `'json type': (r) => r.headers['Content-Type'].includes('json')` |
+
+<aside class="notes">
+Pattern is consistent: every DD assertion becomes one key-value pair inside check() call.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Example DD Test → k6 Script
+
+DD test:
+```json
+{
+  "config": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.example.com/health",
+      "timeout": 30
+    },
+    "assertions": [
+      { "type": "statusCode", "target": 200 },
+      { "type": "responseTime", "target": 2000 }
+    ]
+  }
+}
+```
+
+k6 equivalent:
+```javascript
+const res = http.get('http://localhost:3000/health',
+  { timeout: '30s' });
+check(res, {
+  'status 200': (r) => r.status === 200,
+  'fast response': (r) => r.timings.duration < 2000,
+});
+```
+
+<aside class="notes">
+After translation, same script runs locally (for debugging) and in SM (for continuous monitoring).
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Multistep Test Migration
+
+DD multistep test pattern:
+- Step 1: POST /login — extract token
+- Step 2: GET /api/products — inject token in header
+
+k6 equivalent:
+```javascript
+// Step 1: authenticate
+const loginRes = http.post('/login', payload);
+const token = JSON.parse(loginRes.body).token;
+
+// Step 2: use extracted variable
+const productsRes = http.get('/api/products', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+```
+
+<aside class="notes">
+k6 approach is simpler: variables are plain JavaScript variables passed between function calls. No template syntax.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What Does Not Map Directly
+
+| DD Feature | k6 Status | Workaround |
+|---|---|---|
+| GraphQL assertion (built-in) | No native type | Parse JSON response manually |
+| gRPC assertions | Requires k6/net/grpc module | Write scripted check with grpc module |
+| No-code assertion builder | k6 requires JavaScript | Use k6 Studio to generate script |
+| DD global variables | No SM equivalent | Use k6 environment variables |
+| Frequency < 1 minute | SM minimum is 1 minute | Not supported in SM |
+
+<aside class="notes">
+Most DD features have k6 equivalents. Main gaps: no-code builders and sub-minute frequency.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 28: Migrating DD Monitors
+
+DD monitor structure:
+```json
+{
+  "type": "metric alert",
+  "query": "avg(last_5m):avg:trace.request.duration.95p > 2000",
+  "options": {
+    "thresholds": {
+      "critical": 2000.0,
+      "warning": 1500.0
+    }
+  }
+}
+```
+
+<aside class="notes">
+Biggest structural shift: DD embeds routing in monitor messages. Grafana separates routing into Notification Policies using alert labels.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## DD Monitor → Grafana Alert Rule
+
+| DD Field | Grafana Destination |
+|---|---|
+| type: metric alert | Alert Rule with Prometheus datasource |
+| query | PromQL expression |
+| thresholds.critical | Alert Rule condition: `> 2000` |
+| thresholds.warning | Second Alert Rule with `severity=warning` label |
+| message text | Alert Rule annotation: summary/description |
+| @pagerduty-handle | Contact Point + Notification Policy |
+| {{#is_alert}} | Grafana template: `{{ if not $resolved }}` |
+| {{value}} | `{{ $values.A.Value }}` |
+
+<aside class="notes">
+DD single monitor with warning + critical maps to two Grafana rules with severity labels — more rules, more flexible routing.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Creating Grafana Alert Rule
+
+Steps:
+1. Alerting → Alert Rules → New Alert Rule
+2. Name: `P95 latency high - api-gateway (critical)`
+3. Data source: Synthetic Monitoring / Prometheus
+4. PromQL query:
+   ```promql
+   histogram_quantile(0.95,
+     sum by (le) (
+       rate(probe_http_duration_seconds_bucket[5m])
+     )
+   ) * 1000
+   ```
+5. Condition: `IS ABOVE 2000`
+6. Labels: `env=prod`, `severity=critical`
+
+<aside class="notes">
+Labels drive notification routing. Notification Policy matches on severity=critical to route to PagerDuty contact point.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Multi-Threshold Strategy
+
+DD: single monitor with warning + critical thresholds
+
+Grafana: two rules with severity labels
+
+| Aspect | DD | Grafana |
+|---|---|---|
+| Warning fires | Same monitor | Second rule with severity=warning |
+| Critical fires | Same monitor | First rule with severity=critical |
+| Routing | @-handles in message | Notification Policy by label |
+| Change recipients | Edit monitor message | Edit policy (no rule edit needed) |
+
+<aside class="notes">
+Grafana approach provides more flexibility: change routing without touching alert rules.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Message Templates Translation
+
+| DD template | Grafana equivalent |
+|---|---|
+| `{{#is_alert}}...{{/is_alert}}` | `{{ if not $resolved }}...{{ end }}` |
+| `{{#is_warning}}...{{/is_warning}}` | `{{ if eq $labels.severity "warning" }}...{{ end }}` |
+| `{{#is_recovery}}...{{/is_recovery}}` | `{{ if $resolved }}...{{ end }}` |
+| `{{value}}` | `{{ $values.A.Value \| printf "%.2f" }}` |
+| `{{threshold}}` | Hardcode in string or store as label |
+
+<aside class="notes">
+DD uses Handlebars-style templates. Grafana uses Go templates. Same logical structure, different syntax.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Complete Grafana Message Template
+
+```
+{{ if not $resolved }}
+P95 request latency for {{ $labels.service }} in {{ $labels.env }}
+has exceeded threshold.
+
+Current value: {{ $values.A.Value | printf "%.0f" }}ms
+Severity: {{ $labels.severity }}
+{{ else }}
+P95 latency for {{ $labels.service }} has recovered.
+{{ end }}
+```
+
+Store in Alerting → Contact Points → Message Templates
+
+<aside class="notes">
+Reference template by name in contact point configuration. Reusable across multiple alert rules.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Notification Policies
+
+DD: embed `@pagerduty-handle` in monitor message
+
+Grafana: separate notification policy
+
+```yaml
+Matcher: severity = critical
+Contact point: PagerDuty
+Repeat interval: 1h
+```
+
+Separate policy for warnings:
+```yaml
+Matcher: severity = warning
+Contact point: Slack
+Repeat interval: 4h
+```
+
+<aside class="notes">
+Decoupling routing from rules means changing on-call rotation doesn't require editing alert rules.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What to Watch Out For
+
+| DD Feature | Grafana Situation | Approach |
+|---|---|---|
+| Anomaly detection | No direct OSS equivalent | Use Grafana ML plugin (Cloud) or static thresholds |
+| Composite monitor | Multi-condition rules supported | Create single rule with two queries and AND condition |
+| Process monitor | DD agent native | Deploy Grafana Alloy + process exporter |
+| Log-based monitor | Requires Loki | Query with LogQL alert rule |
+| Synthetics alert | SM auto-creates | Or create custom rule on probe_success |
+
+<aside class="notes">
+Anomaly detection monitors are the one real gap — require Grafana ML (Cloud paid feature), not in OSS stack.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Migration Checklist
+
+For each DD monitor:
+1. Identify monitor type (metric, synthetics, log)
+2. Map query to PromQL/LogQL
+3. Create Grafana Alert Rule with matching threshold
+4. Add labels for routing (severity, team, service)
+5. Create Notification Policy matching labels
+6. Set up Contact Points (PagerDuty, Slack, email)
+7. Configure repeat interval in policy
+8. Test with temporary low threshold
+
+<aside class="notes">
+Test each migrated alert with temporarily low threshold to verify notification path works end-to-end.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- Every major DD concept has Grafana/k6 equivalent, but naming differs
+- DD synthetic tests map mechanically to k6 scripts via field translation
+- DD assertions become k6 check() calls with consistent pattern
+- Multistep DD tests become sequential k6 requests with JavaScript variables
+- DD monitors map to Grafana Alert Rules with labels for routing
+- Notification Policies decouple routing from rules — key architectural shift
+- DD Handlebars templates → Grafana Go templates (same logic, different syntax)
+- Anomaly detection is the main gap requiring Grafana Cloud ML
+
+<aside class="notes">
+Migration is structured and mechanical. Main learning curve is PromQL and understanding label-based notification routing.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ],
+            slideNumber: 'c/t',
+            showSlideNumber: 'all'
+        });
+    </script>
+</body>
+</html>

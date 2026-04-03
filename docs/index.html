@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>k6 + Grafana Synthetic Monitoring Workshop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 0;
+        }
+        .main-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+        .main-header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .main-header p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+        }
+        .card {
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: none;
+            margin-bottom: 20px;
+            height: 100%;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .card-header {
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        .card-text {
+            color: #666;
+            font-size: 1rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            font-weight: 600;
+            padding: 10px 25px;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        .section-header {
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 40px 0 25px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .grafana-logo {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            width: 60px;
+            height: 60px;
+            opacity: 0.9;
+        }
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 60px;
+            padding: 20px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-header">
+            <h1>k6 + Grafana Synthetic Monitoring Workshop</h1>
+            <p>A hands-on journey from load testing fundamentals to production observability</p>
+        </div>
+
+        <!-- Introduction Section -->
+        <h2 class="section-header">🚀 Getting Started</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        Pre-Lab
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 00: Setup and Environment</h5>
+                        <p class="card-text">Get your local workshop environment running and verify all services are healthy. Install k6 and run your first smoke check.</p>
+                        <a href="00_Setup_and_Environment/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Beginner Section -->
+        <h2 class="section-header">📚 Module 1: k6 Load Testing Fundamentals</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        Beginner
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 01: k6 Fundamentals</h5>
+                        <p class="card-text">Write your first k6 load test. Learn about VUs, duration, iterations, and how to read test output.</p>
+                        <a href="01_k6_Fundamentals/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        Beginner
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 02: HTTP Testing, Checks & Thresholds</h5>
+                        <p class="card-text">Add validation with checks and set pass/fail criteria with thresholds. Learn about exit codes and CI/CD integration.</p>
+                        <a href="02_HTTP_Testing_Checks_Thresholds/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        Beginner
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 03: Load Profiles and Stages</h5>
+                        <p class="card-text">Create realistic load patterns with ramping stages. Learn about spike tests, soak tests, and the scenarios API.</p>
+                        <a href="03_Load_Profiles_and_Stages/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Intermediate Section -->
+        <h2 class="section-header">🔧 Module 2: Advanced k6 Scripting</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        Intermediate
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 04: Advanced Scripting</h5>
+                        <p class="card-text">Organize tests with groups and tags. Parameterize requests and create data-driven tests with SharedArray.</p>
+                        <a href="04_Advanced_Scripting/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        Intermediate
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 05: Local Observability</h5>
+                        <p class="card-text">Export k6 metrics to InfluxDB and Prometheus. Build real-time dashboards in Grafana for live test monitoring.</p>
+                        <a href="05_Local_Observability/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        Intermediate
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 06: Cloud Integration</h5>
+                        <p class="card-text">Export results as JSON, use handleSummary for custom reports, and run tests in k6 Cloud and Grafana Cloud.</p>
+                        <a href="06_Cloud_Integration/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Synthetic Monitoring Section -->
+        <h2 class="section-header">🌐 Module 3: Grafana Synthetic Monitoring</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        Intermediate
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 07: Synthetic Monitoring Basics</h5>
+                        <p class="card-text">Introduction to Grafana SM. Create HTTP, DNS, and TCP checks. Build multi-step workflow checks with k6 scripts.</p>
+                        <a href="07_Synthetic_Monitoring_Basics/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        Intermediate
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 08: Synthetic Advanced Features</h5>
+                        <p class="card-text">Structured logging, custom metrics, k6 extensions, alerting on synthetic results, and SLOs with error budgets.</p>
+                        <a href="08_Synthetic_Advanced_Features/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        Intermediate
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 09: Browser Testing</h5>
+                        <p class="card-text">k6 browser module for real browser automation. Page interactions, mixed HTTP+browser tests, and OpenTelemetry tracing.</p>
+                        <a href="09_Browser_Testing/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Section -->
+        <h2 class="section-header">🎯 Module 4: Production Integration</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        Advanced
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 10: Observability Integration</h5>
+                        <p class="card-text">k6 Studio for recording user journeys, correlation rules, and private probes for monitoring internal services.</p>
+                        <a href="10_Observability_Integration/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        Advanced
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 11: DataDog Migration</h5>
+                        <p class="card-text">Migrate from DataDog to Grafana. Concept mapping, converting DD synthetic tests to k6, and migrating DD monitors.</p>
+                        <a href="11_DataDog_Migration/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        Advanced
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Lab 12: Capstone Project</h5>
+                        <p class="card-text">End-to-end observability implementation. Integrate load testing, synthetic monitoring, SLOs, and alerting for production.</p>
+                        <a href="12_Capstone_Project/index.html" class="btn btn-primary">Launch Slides</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><strong>k6 + Grafana Synthetic Monitoring Workshop</strong></p>
+            <p>Built with ❤️ for Grafana SEs and customers</p>
+            <p class="small">Navigate through the modules sequentially or jump to specific topics as needed.</p>
+        </footer>
+    </div>
+
+    <img src="https://grafana.com/static/assets/img/fav32.png" alt="Grafana Logo" class="grafana-logo">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 01: k6 Fundamentals</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Lab 01: k6 Fundamentals
+
+Your First k6 Load Test
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Setup](../00_Setup_and_Environment/index.html) | [Next: HTTP Testing](../02_HTTP_Testing_Checks_Thresholds/index.html)</small>
+
+<aside class="notes">
+This module introduces the core concepts of k6 load testing: script structure, virtual users, and duration.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What You'll Learn
+
+- The minimal structure of a k6 test script
+- What `vus` and `duration` options control
+- How to read k6's built-in terminal summary
+- How increasing VUs affects throughput and latency
+- How to override options from the CLI
+
+<aside class="notes">
+By the end of this lab, you'll understand the fundamentals of k6 scripting and be able to write simple load tests.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Minimal k6 Script Structure
+
+```javascript
+import http from 'k6/http';
+import { sleep } from 'k6';
+
+export const options = {
+  vus: 1,
+  duration: '10s',
+};
+
+export default function () {
+  http.get('http://localhost:3000/');
+  sleep(1);
+}
+```
+
+Three essential parts:
+1. **Imports** — k6 modules
+2. **Options** — test configuration
+3. **Default function** — the test scenario
+
+<aside class="notes">
+This is the simplest possible k6 script. The default function runs in a loop for the specified duration with the specified number of virtual users.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Understanding Options
+
+```javascript
+export const options = {
+  vus: 1,
+  duration: '10s',
+};
+```
+
+- **vus** — Virtual Users running concurrently
+- **duration** — How long the test runs
+
+Each VU loops the default function repeatedly until duration expires.
+
+<aside class="notes">
+Think of VUs as simulated concurrent users. With 1 VU and a 1-second sleep, you'll get roughly 1 iteration per second.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The Default Function
+
+```javascript
+export default function () {
+  http.get('http://localhost:3000/');
+  sleep(1);
+}
+```
+
+- **http.get()** — Makes an HTTP GET request
+- **sleep(1)** — Pauses for 1 second
+
+The sleep simulates realistic user "think time" between actions.
+
+<aside class="notes">
+Without sleep, k6 would make requests as fast as possible, which isn't realistic for most user scenarios. Think time prevents hammering the server.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Run Your First Test
+
+```bash
+k6 run scripts/starters/lab-01-starter.js
+```
+
+Watch the output as the test runs for 10 seconds with 1 VU.
+
+<aside class="notes">
+You'll see real-time progress updates and a summary when the test completes.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Reading the Summary Output
+
+```
+  http_req_duration..............: avg=3.45ms p(95)=6.3ms
+  http_req_failed................: 0.00%  ✓ 0  ✗ 9
+  iterations.....................: 9      0.896835/s
+  vus............................: 1      min=1   max=1
+```
+
+| Metric | Meaning |
+|--------|---------|
+| http_req_duration | Full round-trip request time |
+| http_req_failed | % of non-2xx/3xx responses |
+| iterations | How many times default function completed |
+| vus | Virtual user count |
+
+<aside class="notes">
+With 1 VU and a 1-second sleep, you should see roughly 9-10 iterations in a 10-second run.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Increase VUs
+
+Edit the script:
+```javascript
+export const options = {
+  vus: 5,
+  duration: '10s',
+};
+```
+
+Or override from CLI:
+```bash
+k6 run --vus 5 --duration 10s scripts/starters/lab-01-starter.js
+```
+
+<aside class="notes">
+CLI flags override script options without modifying the file. This is useful for testing different load levels with the same script.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Observe the Changes
+
+With 5 VUs, you should see:
+
+- **Iterations** roughly 5× higher (~45 instead of ~9)
+- **VUs** showing `min=5 max=5`
+- **http_req_duration** may be similar or slightly higher
+
+More VUs = more concurrent requests = higher throughput.
+
+<aside class="notes">
+Each VU runs independently, so 5 VUs generate 5 times as many requests. Latency may increase if the server is under more load.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Metrics Explained
+
+**http_req_duration** — Request latency percentiles
+- `avg` — Mean response time
+- `p(95)` — 95th percentile (95% of requests faster than this)
+- `max` — Slowest request
+
+**iterations** — Test throughput
+- Total iterations / iterations per second
+
+**http_req_failed** — Error rate
+- Percentage of requests that failed
+
+<aside class="notes">
+The p95 metric is particularly important — it represents the worst-case experience for 95% of your users.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Why Use sleep()?
+
+Without `sleep(1)`:
+
+```javascript
+export default function () {
+  http.get('http://localhost:3000/');
+  // No sleep — tight loop!
+}
+```
+
+k6 will make requests as fast as possible, which:
+- Hammers the server unrealistically
+- Doesn't simulate real user behavior
+- May overwhelm your local infrastructure
+
+<aside class="notes">
+Real users don't make continuous requests — they browse, read, think. Sleep simulates this realistic pacing.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## CLI Options Override Script Options
+
+```bash
+# Override VUs and duration
+k6 run --vus 10 --duration 30s script.js
+
+# Override any option
+k6 run --iterations 100 script.js
+
+# Multiple options
+k6 run --vus 5 --duration 1m --http-debug script.js
+```
+
+CLI flags take precedence over script `options`.
+
+<aside class="notes">
+This pattern lets you reuse the same script for smoke tests (low load), stress tests (high load), and production scenarios without editing code.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- A k6 script needs: imports, options, and a default function
+- **vus** and **duration** are the two most fundamental options
+- **sleep()** simulates realistic user think-time
+- CLI flags override script options without modifying files
+- Metrics like **p95**, **iterations**, and **http_req_failed** tell you how the system performs
+
+<aside class="notes">
+You now understand the foundational structure of k6 tests. The next modules will add checks, thresholds, and advanced scripting patterns.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+# Lab Complete!
+
+Ready to add checks and assertions
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Setup](../00_Setup_and_Environment/index.html) | [Next: HTTP Testing](../02_HTTP_Testing_Checks_Thresholds/index.html)</small>
+
+<aside class="notes">
+Great work! You've written and run your first k6 load test. Next up: validating responses with checks and thresholds.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script src="../common-scripts.js"></script>
+</body>
+</html>

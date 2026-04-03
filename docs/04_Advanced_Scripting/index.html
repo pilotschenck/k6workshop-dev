@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 04: Advanced Scripting</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Lab 04: Advanced Scripting
+
+Groups, Tags, and Data-Driven Tests
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Load Profiles](../03_Load_Profiles_and_Stages/index.html) | [Next: Local Observability](../05_Local_Observability/index.html)</small>
+
+<aside class="notes">
+This module covers organizing complex tests with groups and tags, and creating data-driven tests with parameterization.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## What You'll Learn
+
+- How to wrap related requests in named `group()` blocks
+- How groups appear in k6's terminal summary
+- How to attach custom tags to requests for filtering
+- How to load external data with `SharedArray`
+- How to use `__VU` and `__ITER` for unique data per virtual user
+- How to externalize configuration with `__ENV`
+
+<aside class="notes">
+By the end of this module, you'll be able to create organized, data-driven tests that scale to realistic multi-user scenarios.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The Problem: Unorganized Tests
+
+```javascript
+export default function () {
+  http.get('http://localhost:3000/');
+  http.get('http://localhost:3000/api/products');
+  http.get('http://localhost:3000/api/products/1');
+  http.post('http://localhost:3000/login', payload);
+}
+```
+
+Which requests belong to which user flow?
+How do you filter metrics by scenario?
+
+<aside class="notes">
+As tests grow in complexity, you need structure to understand which parts of the test are failing or slow.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Enter group(): Logical Organization
+
+```javascript
+import { group } from 'k6';
+
+export default function () {
+  group('homepage', function () {
+    http.get('http://localhost:3000/');
+  });
+
+  group('product browsing', function () {
+    http.get('http://localhost:3000/api/products');
+    http.get('http://localhost:3000/api/products/1');
+  });
+
+  group('login', function () {
+    http.post('http://localhost:3000/login', payload);
+  });
+}
+```
+
+Groups organize requests into named logical flows.
+
+<aside class="notes">
+group() takes a name and a function containing the requests for that logical step. Groups can be nested for sub-flows.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Groups in Summary Output
+
+```
+  ✓ :: homepage
+    ✓ status is 200
+
+  ✓ :: product browsing
+    ✓ status is 200
+    ✓ product has id field
+
+  ✓ :: login
+    ✓ login status 200 or 201
+
+     group_duration..................: avg=Xms  min=Xms  med=Xms  max=Xms
+```
+
+The `::` prefix denotes a group in the output tree.
+
+<aside class="notes">
+Groups make it easy to pinpoint which user flow is failing or slow. Each group's metrics are reported separately.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Tags: Custom Metadata
+
+```javascript
+http.get('http://localhost:3000/', {
+  tags: { name: 'homepage', flow: 'anonymous' },
+});
+
+http.post('http://localhost:3000/login', payload, {
+  tags: { name: 'login', flow: 'authenticated' },
+});
+```
+
+Tags are key-value metadata attached to requests:
+- **name** — special tag for URL grouping
+- **flow** — custom tag for filtering in dashboards
+
+<aside class="notes">
+The name tag is special. k6 uses it to group URL patterns in dashboards, preventing metric explosion from dynamic IDs.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Why Use the name Tag?
+
+Without `name` tag:
+```
+/api/products/1
+/api/products/2
+/api/products/999
+```
+Each URL creates a separate metric series (cardinality explosion).
+
+With `name` tag:
+```javascript
+http.get(`http://localhost:3000/api/products/${id}`, {
+  tags: { name: 'product-detail' },
+});
+```
+All requests collapse to a single series: `product-detail`.
+
+<aside class="notes">
+Dynamic URLs can create thousands of unique metric series, overwhelming dashboards. The name tag solves this problem.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Test-Level Tags
+
+```javascript
+export const options = {
+  tags: {
+    environment: 'local',
+    team: 'platform',
+    testType: 'load',
+  },
+};
+```
+
+These tags apply to **all** requests in the test.
+
+Use for:
+- Environment identification (dev, staging, prod)
+- Team ownership
+- Test classification
+
+<aside class="notes">
+Test-level tags are useful for filtering in dashboards when you run many different tests through the same observability stack.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Custom Metrics: Counter
+
+```javascript
+import { Counter } from 'k6/metrics';
+
+const loginAttempts = new Counter('login_attempts');
+
+export default function () {
+  // ... make login request ...
+  loginAttempts.add(1);
+}
+```
+
+Output:
+```
+     login_attempts.................: 47     1.566667/s
+```
+
+<aside class="notes">
+k6 has four metric types: Counter, Gauge, Rate, and Trend. Counters accumulate values over time.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Custom Metrics with Tags
+
+```javascript
+import { Counter } from 'k6/metrics';
+
+const loginAttempts = new Counter('login_attempts');
+
+export default function () {
+  const res = http.post('http://localhost:3000/login', payload);
+
+  if (res.status === 200) {
+    loginAttempts.add(1, { result: 'success' });
+  } else {
+    loginAttempts.add(1, { result: 'failure' });
+  }
+}
+```
+
+Enables filtering by `result` in dashboards.
+
+<aside class="notes">
+Adding tags to custom metrics enables slicing and dicing in Grafana or other observability backends.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The Problem: Hardcoded Data
+
+```javascript
+export default function () {
+  const payload = JSON.stringify({
+    username: 'user1',
+    password: 'pass1'
+  });
+  http.post('http://localhost:3000/login', payload);
+}
+```
+
+With 10 VUs, all logging in as `user1`:
+- Server may return cached sessions
+- Results are skewed, not realistic
+
+<aside class="notes">
+Real systems have many users. Tests should simulate this by using different credentials per VU.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Enter SharedArray: Efficient Data Loading
+
+```javascript
+import { SharedArray } from 'k6/data';
+
+const users = new SharedArray('users', function () {
+  return JSON.parse(open('./users.json'));
+});
+```
+
+`SharedArray` loads data **once** before any VU starts, then shares the same in-memory object across all VUs.
+
+Far more efficient than each VU reading the file independently.
+
+<aside class="notes">
+SharedArray is the correct way to load external data in k6. It initializes once and shares memory across all VUs.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## The users.json File
+
+```json
+[
+  { "username": "user1", "password": "pass1" },
+  { "username": "user2", "password": "pass2" },
+  { "username": "user3", "password": "pass3" },
+  { "username": "user10", "password": "pass10" }
+]
+```
+
+Each object represents a test user account.
+
+<aside class="notes">
+In real scenarios, this data might come from a QA team's spreadsheet or a test data generator.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Selecting Unique Data per VU
+
+```javascript
+import { SharedArray } from 'k6/data';
+
+const users = new SharedArray('users', function () {
+  return JSON.parse(open('./users.json'));
+});
+
+export default function () {
+  const user = users[(__VU - 1) % users.length];
+
+  const payload = JSON.stringify({
+    username: user.username,
+    password: user.password,
+  });
+
+  http.post('http://localhost:3000/login', payload, params);
+}
+```
+
+<aside class="notes">
+__VU is a built-in global representing the VU index, starting at 1. Use modulo to cycle through the array without going out of bounds.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## __VU and __ITER Explained
+
+| Variable | Type | Value |
+|---|---|---|
+| `__VU` | number | VU index, starting at 1 |
+| `__ITER` | number | Iteration count for this VU, starting at 0 |
+
+**Per-VU selection:**
+```javascript
+const user = users[(__VU - 1) % users.length];
+```
+
+**Per-VU and per-iteration:**
+```javascript
+const user = users[(__VU + __ITER) % users.length];
+```
+
+<aside class="notes">
+Use __VU for stable per-VU data selection. Use __VU + __ITER for more variation across iterations.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Externalizing Configuration with __ENV
+
+```javascript
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+
+export default function () {
+  http.get(`${BASE_URL}/`);
+}
+```
+
+Run with custom base URL:
+```bash
+k6 run -e BASE_URL=http://localhost:3001 script.js
+```
+
+No code changes needed.
+
+<aside class="notes">
+__ENV is an object containing all environment variables passed to k6. Use it with fallback values for local development.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Multiple Environment Variables
+
+```bash
+k6 run \
+  -e BASE_URL=http://localhost:3000 \
+  -e THINK_TIME=2 \
+  -e VUS=10 \
+  script.js
+```
+
+In the script:
+```javascript
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const THINK_TIME = parseInt(__ENV.THINK_TIME || '1');
+const VUS = parseInt(__ENV.VUS || '5');
+```
+
+<aside class="notes">
+Environment variables come in as strings. Parse them to numbers when needed. Keep secrets out of scripts.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## CSV Data with papaparse
+
+```javascript
+import papaparse from 'https://jslib.k6.io/papaparse/5.1.1/index.js';
+import { SharedArray } from 'k6/data';
+
+const csvUsers = new SharedArray('csv-users', function () {
+  const raw = open('./users.csv');
+  return papaparse.parse(raw, { header: true }).data;
+});
+```
+
+Use `header: true` to use first row as property names.
+
+<aside class="notes">
+CSV is a common format when test data comes from QA teams. papaparse is a k6 JSLib for parsing CSV files.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- `group()` organizes requests into logical user flows
+- The `name` tag prevents metric cardinality explosion from dynamic URLs
+- `options.tags` applies metadata to every request for filtering
+- Custom `Counter`, `Gauge`, `Rate`, and `Trend` metrics track domain-specific signals
+- `SharedArray` loads data once and shares it across all VUs
+- `__VU` and `__ITER` enable unique per-VU and per-iteration data selection
+- `__ENV` externalizes configuration without editing scripts
+
+<aside class="notes">
+You now have the tools to create organized, data-driven tests that scale to realistic multi-user scenarios.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+# Lab Complete!
+
+Ready to stream results to observability backends
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Load Profiles](../03_Load_Profiles_and_Stages/index.html) | [Next: Local Observability](../05_Local_Observability/index.html)</small>
+
+<aside class="notes">
+Great work! You can now organize complex tests with groups and tags, and create data-driven tests with parameterization. Next up: streaming results to InfluxDB and Prometheus.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script src="../common-scripts.js"></script>
+</body>
+</html>

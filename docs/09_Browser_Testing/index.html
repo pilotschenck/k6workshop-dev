@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 09: Browser Testing</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Module 09: Browser Testing
+
+k6 Browser Module and Mixed Protocol Testing
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Synthetic Advanced](../08_Synthetic_Advanced_Features/index.html) | [Next: Observability Integration](../10_Observability_Integration/index.html)</small>
+
+<aside class="notes">
+This module covers Labs 14-18: k6 browser module introduction, browser interactions, mixed HTTP+browser testing, browser synthetics, and OpenTelemetry tracing.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Module Overview
+
+Testing with real browsers and distributed tracing:
+- **Lab 14:** Browser intro and page navigation
+- **Lab 15:** Forms, clicks, waits, and interactions
+- **Lab 16:** Mixed HTTP + browser testing
+- **Lab 17:** Browser synthetic checks in Grafana SM
+- **Lab 18:** OpenTelemetry tracing integration
+
+<aside class="notes">
+The browser module lets you test JavaScript-rendered pages, measure Web Vitals, and capture screenshots — all from k6 scripts.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 14: k6 Browser Module
+
+k6 includes built-in browser module powered by Chromium.
+
+| HTTP scripts | Browser scripts |
+|---|---|
+| `import http from 'k6/http'` | `import { browser } from 'k6/browser'` |
+| Synchronous | Async/await required |
+| No UI | Full Chromium browser |
+| Lightweight | Higher resource usage |
+
+<aside class="notes">
+The browser module wraps Chromium using Chrome DevTools Protocol (CDP) — same protocol Playwright and Puppeteer use.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Browser Script Structure
+
+```javascript
+import { browser } from 'k6/browser';
+
+export const options = {
+  scenarios: {
+    browser_test: {
+      executor: 'shared-iterations',
+      options: {
+        browser: {
+          type: 'chromium',
+        },
+      },
+    },
+  },
+};
+
+export default async function () {
+  const page = await browser.newPage();
+  // ... interact with page
+  await page.close();
+}
+```
+
+<aside class="notes">
+Browser tests use the chromium executor in a named scenario. Default function must be async because browser APIs return Promises.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Basic Page Navigation
+
+```javascript
+export default async function () {
+  const page = await browser.newPage();
+
+  try {
+    await page.goto('http://localhost:8080/html');
+    // Page is now loaded
+  } finally {
+    await page.close();
+  }
+}
+```
+
+Always close the page in `finally` block — ensures cleanup even when assertions fail.
+
+<aside class="notes">
+Set K6_BROWSER_HEADLESS=true in CI environments without display server. On most platforms, headless mode is default.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Taking Screenshots
+
+```javascript
+await page.screenshot({ path: 'screenshots/lab-14.png' });
+```
+
+Run and verify:
+```bash
+k6 run scripts/starters/lab-14-starter.js
+ls -lh screenshots/lab-14.png
+```
+
+Screenshot written to current working directory.
+
+<aside class="notes">
+Screenshots are essential for visual debugging when browser tests fail — you see exactly what the browser rendered.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Getting Page Title
+
+```javascript
+const title = await page.title();
+console.log(`Page title: ${title}`);
+
+check(title, {
+  'page title is not empty': (t) => t.length > 0,
+});
+```
+
+Combine with k6 `check()` to make assertions part of pass/fail criteria.
+
+<aside class="notes">
+k6 forwards console.log, console.warn, and console.error calls from browser page to k6 output stream.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 15: Browser Interactions
+
+Core interaction APIs:
+- **page.locator()** — find elements by CSS selector
+- **.fill()** — fill text inputs
+- **.click()** — click buttons/links
+- **page.waitForNavigation()** — wait for page navigation
+- **page.waitForSelector()** — wait for dynamic content
+- **page.evaluate()** — run JavaScript in page context
+
+<aside class="notes">
+Locators are lazy — they don't query the DOM until you call an action method like fill, click, or textContent.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Filling Forms
+
+```javascript
+await page.locator('input[name="custname"]').fill('Test User');
+await page.locator('input[name="custtel"]').fill('555-1234');
+await page.locator('input[name="custemail"]').fill('test@example.com');
+```
+
+Use CSS selectors to target elements. `locator()` is lazy — queries DOM only when action executes.
+
+<aside class="notes">
+Locators can be defined before the element exists on the page — useful for dynamically loaded content.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Clicking and Waiting for Navigation
+
+```javascript
+await Promise.all([
+  page.waitForNavigation(),
+  page.locator('input[type="submit"]').click(),
+]);
+```
+
+Wrap click and wait together. `waitForNavigation()` resolves when browser fires `load` event on new page.
+
+<aside class="notes">
+Without this wait, subsequent calls will run against the old page or fail because new page hasn't loaded yet.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Waiting for Dynamic Content
+
+For single-page apps with delayed content:
+
+```javascript
+// Wait up to 5 seconds for element to appear
+await page.waitForSelector('.result', { timeout: 5000 });
+
+const resultText = await page.locator('.result').textContent();
+```
+
+Essential for JavaScript-heavy applications where content loads after initial render.
+
+<aside class="notes">
+Without waitForSelector, you'd try to interact with elements that don't exist yet, causing test failures.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Running JavaScript in Page Context
+
+```javascript
+const url = await page.evaluate(() => window.location.href);
+console.log(`Current URL: ${url}`);
+
+const inputCount = await page.evaluate(
+  () => document.querySelectorAll('input').length
+);
+console.log(`Found ${inputCount} input elements`);
+```
+
+`page.evaluate()` executes arbitrary JavaScript in browser and returns result to k6.
+
+<aside class="notes">
+Useful for reading computed values, scrolling pages, or triggering events that locators cannot reach.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Error Handling Pattern
+
+```javascript
+export default async function () {
+  const page = await browser.newPage();
+
+  try {
+    await page.goto('http://localhost:8080/forms/post');
+    await page.locator('input[name="custname"]').fill('Test User');
+    await Promise.all([
+      page.waitForNavigation(),
+      page.locator('input[type="submit"]').click(),
+    ]);
+  } catch (e) {
+    console.error(`Browser interaction failed: ${e.message}`);
+  } finally {
+    await page.close();
+  }
+}
+```
+
+<aside class="notes">
+Finally block ensures page is always closed, even when catch runs. Prevents resource leaks.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 16: Mixed HTTP + Browser Testing
+
+k6 lets you mix HTTP and browser tests in a single run using scenarios.
+
+**Use case:** Load test API with dozens of VUs while simultaneously verifying UI works correctly.
+
+Catches both backend performance regressions and frontend breakage in one run.
+
+<aside class="notes">
+Your API might handle load fine while frontend silently degrades. One browser VU alongside API VUs catches this immediately.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Scenario Configuration
+
+```javascript
+export const options = {
+  scenarios: {
+    api_load: {
+      executor: 'constant-vus',
+      vus: 5,
+      duration: '30s',
+      exec: 'apiTest',
+    },
+    browser_check: {
+      executor: 'constant-vus',
+      vus: 1,
+      duration: '30s',
+      exec: 'browserTest',
+      options: {
+        browser: { type: 'chromium' },
+      },
+    },
+  },
+};
+```
+
+<aside class="notes">
+The browser option block inside a scenario activates k6 browser module for those VUs. Only browser-typed scenarios get browser context.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## API Test Function
+
+```javascript
+export function apiTest() {
+  const productsRes = http.get('http://localhost:3000/api/products');
+  check(productsRes, {
+    'api: products status 200': (r) => r.status === 200,
+  });
+
+  sleep(1);
+
+  const loginRes = http.post(
+    'http://localhost:3000/login',
+    JSON.stringify({ username: 'testuser', password: 'password123' }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  check(loginRes, {
+    'api: login response received': (r) => r.status !== 0,
+  });
+}
+```
+
+<aside class="notes">
+API test function is synchronous — no async/await needed for HTTP tests. k6 handles the difference automatically.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Browser Test Function
+
+```javascript
+export async function browserTest() {
+  const page = await browser.newPage();
+
+  try {
+    await page.goto('http://localhost:3030/');
+    await page.screenshot({ path: 'screenshots/mixed-test.png' });
+
+    const title = await page.title();
+    check(title, {
+      'browser: page title is not empty': (t) => t.length > 0,
+    });
+  } finally {
+    await page.close();
+  }
+}
+```
+
+<aside class="notes">
+Browser test function must be async. Browser navigation itself takes time, so no sleep() needed — naturally paced.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Reading Mixed Output
+
+```
+browser_dom_content_loaded.....: avg=245ms
+browser_first_contentful_paint.: avg=310ms
+checks.........................: 100.00% ✓ 62  ✗ 0
+http_req_duration..............: avg=8.2ms p(90)=14ms p(95)=18ms
+iterations.....................: 212 6.98/s
+```
+
+| Metric | Source |
+|--------|--------|
+| browser_* | browser_check scenario |
+| http_req_* | api_load scenario |
+
+<aside class="notes">
+Iteration count much higher for api_load — expected. Five fast HTTP VUs complete many more iterations than one browser VU.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Viewing in Grafana
+
+Run with InfluxDB output:
+```bash
+K6_BROWSER_HEADLESS=true k6 run \
+  --out influxdb=http://localhost:8086/k6 \
+  scripts/solutions/lab-16-solution.js
+```
+
+In Grafana dashboard:
+- Request rate and latency from API VUs
+- Browser timing panels (FCP, DOMContentLoaded) from browser VU
+- Both on same time axis for correlation
+
+<aside class="notes">
+If browser_first_contentful_paint increases as http_req_duration climbs, backend latency is affecting browser render time.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 17: Browser Synthetic Checks
+
+SM supports browser checks — runs k6 browser script from cloud probes on schedule.
+
+**Key advantage:** Same k6 JavaScript you already know. No separate recorder format or DSL.
+
+Script you run locally with `k6 run` can be pasted directly into SM.
+
+<aside class="notes">
+DataDog Browser tests use recorder-generated format. With k6+SM you maintain ONE scripting language for load testing and synthetic monitoring.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Browser Check Requirements
+
+SM browser checks need:
+1. Browser scenario config in `options` (SM validates structure)
+2. `async/await` throughout (browser APIs are async)
+3. Publicly accessible URL (SM probes run from cloud)
+
+```javascript
+export const options = {
+  scenarios: {
+    browser_check: {
+      executor: 'shared-iterations',
+      options: {
+        browser: { type: 'chromium' },
+      },
+    },
+  },
+};
+```
+
+<aside class="notes">
+Use shared-iterations executor. SM runs exactly one iteration per scheduled check.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Browser Check Example
+
+```javascript
+export default async function () {
+  const page = await browser.newPage();
+
+  try {
+    await page.goto('https://grafana.com', { waitUntil: 'networkidle' });
+
+    const title = await page.title();
+    check(title, {
+      'page title contains Grafana': (t) => t.includes('Grafana'),
+    });
+
+    await page.waitForSelector('nav', { timeout: 10000 });
+
+    const bodyText = await page.locator('body').textContent();
+    check(bodyText, {
+      'hero content is present': (t) => t.includes('observability'),
+    });
+  } finally {
+    await page.close();
+  }
+}
+```
+
+<aside class="notes">
+Always test locally first with K6_BROWSER_HEADLESS=true k6 run before uploading to SM.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Uploading to SM
+
+1. SM → Add Check → **Browser**
+2. Paste full script content
+3. Configure:
+   - Job name: `Grafana Homepage Browser Check`
+   - Probe locations: 2-3 locations
+   - Frequency: 10 minutes (browser checks are heavier)
+   - Timeout: 30 seconds
+
+Use **Run now** button for immediate test.
+
+<aside class="notes">
+10 minutes is sensible default for non-critical pages. Critical checkout flows might run every 5 minutes.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Web Vitals in SM
+
+SM automatically surfaces Web Vitals:
+- **browser_web_vital_fcp** — First Contentful Paint
+- **browser_web_vital_lcp** — Largest Contentful Paint
+- **browser_web_vital_cls** — Cumulative Layout Shift
+
+Trending performance data from multiple global locations — no frontend instrumentation needed.
+
+<aside class="notes">
+These are the same Core Web Vitals Google uses for SEO ranking. Catch CLS regressions before users experience them.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Duration Assertions
+
+Add assertion to cap total check duration:
+
+```yaml
+Metric: Total Duration
+Comparison: Less Than
+Value: 10000 (milliseconds)
+```
+
+SM marks check as failed if script takes > 10 seconds, even if all `check()` calls pass.
+
+<aside class="notes">
+Catches degraded-but-not-broken states — page loaded, but took 12 seconds, which is unacceptable for users.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 18: OpenTelemetry Tracing
+
+k6 experimental tracing module injects distributed trace context into HTTP requests.
+
+```javascript
+import { instrumentHTTP } from 'k6/experimental/tracing';
+
+instrumentHTTP({
+  propagator: 'w3c',
+});
+```
+
+Every HTTP request gets `traceparent` header automatically.
+
+<aside class="notes">
+When slow request surfaces in k6 results, use trace ID to look up exact backend trace in Tempo/Jaeger.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## W3C TraceContext Header
+
+```
+traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+              ^^ version
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ trace-id (128-bit)
+                                                  ^^^^^^^^^^^^^^^^ parent-span-id
+                                                                   ^^ flags (sampled)
+```
+
+Backend reads header and propagates to downstream calls. All spans share same trace ID.
+
+<aside class="notes">
+Without trace context, you know p95 was 800ms but not why. With correlation, pinpoint whether slowdown was DB query, external API, or middleware.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Verifying Trace Injection
+
+```javascript
+const productsRes = http.get('http://localhost:3000/api/products');
+console.log('Request headers: ' + JSON.stringify(productsRes.request.headers));
+```
+
+Run and grep:
+```bash
+k6 run scripts/starters/lab-18-starter.js 2>&1 | grep traceparent
+```
+
+Output:
+```
+INFO[0001] Request headers: {"traceparent":"00-1a2b3c4d..."}
+```
+
+<aside class="notes">
+traceparent value is unique per request — k6 generates new span ID for each call.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## OTel Export to Alloy
+
+If `--out experimental-opentelemetry` is available:
+
+```bash
+K6_OTEL_GRPC_EXPORTER_ENDPOINT=localhost:4317 \
+K6_OTEL_GRPC_EXPORTER_INSECURE=true \
+k6 run --out experimental-opentelemetry scripts/solutions/lab-18-solution.js
+```
+
+Sends k6's own metrics and spans to Alloy → Tempo.
+
+<aside class="notes">
+instrumentHTTP injects headers for backend propagation. --out experimental-opentelemetry sends k6's own performance metrics as OTel spans.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Viewing Traces in Grafana
+
+Grafana → Explore → Tempo datasource
+
+Search by:
+- Service name: `k6`
+- Query type: Search → browse recent traces
+
+Alloy pipeline at http://localhost:12345 shows live data flow.
+
+<aside class="notes">
+Traces flow from Alloy into Tempo and are queryable in Grafana Explore. No separate UI to context-switch to.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Full Correlation Story
+
+```
+k6 injects traceparent header
+       ↓
+demo-app receives request, creates child span
+       ↓
+demo-app calls database, passes traceparent
+       ↓
+All spans share trace ID → Alloy → Tempo
+       ↓
+k6 reports p95 = 800ms for /api/products
+       ↓
+Look up trace ID in Grafana Explore → Tempo
+       ↓
+See: 650ms spent in full table scan
+```
+
+<aside class="notes">
+This transforms load testing from "something is slow" to "this specific query on this specific service is slow."
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- k6 browser module uses real Chromium — no separate install needed
+- Browser scenarios require chromium executor and async default function
+- `page.locator()` is lazy; actions like fill() and click() are async
+- Mixed scenarios let you load test API while validating UI in one run
+- SM browser checks use same k6 JavaScript as load tests
+- Web Vitals (FCP, LCP, CLS) collected automatically by browser module
+- OTel tracing injects trace context headers for backend correlation
+- Grafana Alloy replaces standalone OTel Collector deployments
+
+<aside class="notes">
+Browser testing + distributed tracing completes the observability stack — frontend performance and backend correlation in one platform.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ],
+            slideNumber: 'c/t',
+            showSlideNumber: 'all'
+        });
+    </script>
+</body>
+</html>

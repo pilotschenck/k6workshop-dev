@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 10: Observability Integration</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+<section data-markdown>
+<textarea data-template>
+# Module 10: Observability Integration
+
+Feature Awareness and Private Probes
+
+<small>Navigate: [All Slides](../index.html) | [Prev: Browser Testing](../09_Browser_Testing/index.html) | [Next: DataDog Migration](../11_DataDog_Migration/index.html)</small>
+
+<aside class="notes">
+This module covers Labs 24-25: k6 Studio for recording user journeys and private probes for monitoring internal services.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Module Overview
+
+Advanced integration features:
+- **Lab 24:** k6 Studio — recording user journeys
+- **Lab 25:** Private probes for internal services
+
+These tools close critical gaps: recording complex flows and reaching non-public services.
+
+<aside class="notes">
+k6 Studio solves the blank-page problem. Private probes let SM monitor internal services behind firewalls.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 24: k6 Studio
+
+Desktop application that records real browser sessions and generates k6 test scripts.
+
+**Solves the blank-page problem:** Browse your application normally, k6 Studio converts actions into runnable k6 test.
+
+Output is standard k6 JavaScript — human-readable, version-controllable, runs anywhere.
+
+<aside class="notes">
+If you came from DataDog: DD Synthetic Recorder generates proprietary format. k6 Studio generates standard k6 JavaScript — no vendor lock-in.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## k6 Studio UI Areas
+
+Four main areas:
+
+| Area | Purpose |
+|---|---|
+| **Recorder** | Launches browser with proxy, captures all HTTP traffic |
+| **Test generator** | Displays captured requests, add correlation rules |
+| **Test runner** | Runs generated script inside k6 Studio |
+| **Inspect** | Shows detailed request/response data |
+
+Workflow: Recorder → Test generator → Test runner
+
+<aside class="notes">
+Move through these areas in sequence. Recorder captures, Test generator cleans up, Test runner validates.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Recording a User Journey
+
+1. Click **New Recording** in k6 Studio
+2. Set target URL: `http://localhost:3000`
+3. Click **Start Recording** — Chromium opens with recording active
+4. Perform actions:
+   - Navigate to home page
+   - View product catalog
+   - Simulate login POST
+5. Click **Stop Recording**
+
+<aside class="notes">
+Recording indicator shows in browser window. Every HTTP request is captured including POST bodies, headers, cookies.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Cleaning Up the Recording
+
+Review captured requests:
+- Method, URL, status code, response time
+
+**Remove noise:**
+- favicon.ico requests
+- Browser telemetry
+- Requests to non-target domains
+
+Select unwanted requests and press Delete.
+
+<aside class="notes">
+After cleanup, you should have only the core requests: GET /, GET /api/products, POST /login.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Generated Script Structure
+
+```javascript
+import http from 'k6/http';
+import { sleep } from 'k6';
+
+export default function () {
+  // GET home page
+  http.get('http://localhost:3000/');
+  sleep(1);
+
+  // GET products
+  http.get('http://localhost:3000/api/products');
+  sleep(1);
+
+  // POST login
+  const loginPayload = JSON.stringify({
+    username: 'testuser',
+    password: 'testpass'
+  });
+  http.post('http://localhost:3000/login', loginPayload,
+    { headers: { 'Content-Type': 'application/json' } });
+}
+```
+
+<aside class="notes">
+Each recorded request becomes http.get/post call. Captured headers reproduced in params object. Sleep calls inserted between requests.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Correlation Rules
+
+**Correlation** extracts dynamic values from responses and injects into subsequent requests.
+
+Example: auth token from login response
+
+1. Select POST /login request
+2. Find `token` field in response body
+3. Add correlation rule:
+   - Type: JSON path
+   - Expression: `$.token`
+   - Variable name: `authToken`
+4. Inject in downstream request:
+   - Header: `Authorization`
+   - Value: `Bearer ${authToken}`
+
+<aside class="notes">
+Without correlation, hardcoded tokens fail on replay. Correlation extracts fresh tokens each run.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Running Generated Script
+
+Validate locally:
+```bash
+k6 run --vus 1 --duration 30s ~/k6studio-workspace/journey-recording.js
+```
+
+Should see successful HTTP requests with no failures.
+
+Can also run from k6 Studio Test runner panel — same k6 output without leaving application.
+
+<aside class="notes">
+If you see 401 errors on requests after login, correlation rule not wired correctly — revisit extraction step.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## k6 Studio vs DataDog Recorder
+
+| Capability | DataDog | k6 Studio |
+|---|---|---|
+| Recording method | Browser extension | Desktop app with proxy |
+| Output format | Proprietary DD test format | Standard k6 JavaScript |
+| Script portability | Lives in DataDog only | Portable, version-controllable |
+| Load testing reuse | Separate tool needed | Same script for load + synthetic |
+
+<aside class="notes">
+k6 Studio output is starting point, not finished product — always review and trim before committing to repository.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Lab 25: Private Probes
+
+Grafana SM public probes run from cloud network — great for public internet, cannot reach internal services.
+
+**Private probes solve this:** Lightweight agent you deploy inside your network. Polls SM for check definitions, executes locally, sends results back.
+
+No inbound firewall ports needed — outbound HTTPS only.
+
+<aside class="notes">
+Staging environments, internal APIs, services behind firewall/VPN all become monitorable with private probes.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Private Probe Architecture
+
+```
+Your network                    Grafana Cloud
+┌───────────────────┐           ┌──────────────────┐
+│  demo-app:3000    │           │  Synthetic       │
+│       ▲           │           │  Monitoring      │
+│       │ HTTP      │           │       │          │
+│       │           │           │       │          │
+│  private-probe ───┼───────────┼──► HTTPS         │
+│  (agent)          │           │  (outbound only) │
+└───────────────────┘           └──────────────────┘
+```
+
+Probe polls SM for check definitions. All traffic is outbound HTTPS on port 443.
+
+<aside class="notes">
+Poll model means SM does not push to probe. Probe initiates all connections — firewall-friendly.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Registering a Private Probe
+
+1. Grafana Cloud → Synthetic Monitoring → Probes
+2. Click **Add Private Probe**
+3. Configure:
+   - Name: `workshop-local`
+   - Latitude/Longitude: optional metadata
+   - Labels: `env=workshop`
+4. Click **Save**
+
+**Copy the SM_ACCESS_TOKEN immediately** — only shown once.
+
+<aside class="notes">
+If you miss the token, delete probe and create new one. Token cannot be retrieved after screen dismissed.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Configuring Private Probe Container
+
+```yaml
+version: "3.8"
+
+services:
+  private-probe:
+    image: grafana/synthetic-monitoring-agent:latest
+    environment:
+      SM_ACCESS_TOKEN: "your-token-here"
+      SM_API_SERVER_ADDRESS: "https://synthetic-monitoring-api.grafana.net"
+    networks:
+      - k6workshop
+    restart: unless-stopped
+
+networks:
+  k6workshop:
+    external: true
+```
+
+<aside class="notes">
+Join k6workshop network so probe can reach demo-app container by hostname.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Starting the Probe
+
+```bash
+docker compose -f infra/private-probe/docker-compose.yml up -d
+```
+
+Verify:
+```bash
+docker logs $(docker ps -qf name=private-probe) 2>&1 | tail -20
+```
+
+Look for:
+```
+level=info msg="connected to synthetic monitoring API"
+level=info msg="registered probe" probe=workshop-local
+```
+
+<aside class="notes">
+Connection errors usually mean wrong token, extra spaces/quotes, or outbound HTTPS blocked.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Creating Check Using Private Probe
+
+SM → Add Check → HTTP
+
+```yaml
+Job name: demo-app-internal
+URL: http://demo-app:3000/
+Probe locations: workshop-local ONLY (uncheck all public probes)
+Frequency: 1 minute
+Timeout: 5 seconds
+Assertion: Status code equals 200
+```
+
+Use container hostname `demo-app`, not `localhost`.
+
+<aside class="notes">
+Probe runs inside Docker on k6workshop network, so demo-app resolves to correct container. localhost would resolve to probe container itself.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Viewing Private Probe Results
+
+SM → Checks → demo-app-internal
+
+Within 1-2 minutes:
+- Uptime: 100%
+- Reachability: probe successfully reaching demo-app
+- Latency: very low (sub-millisecond) — both containers on same host
+- Probe: `workshop-local` listed as source
+
+<aside class="notes">
+This confirms full path: private probe → demo-app → results reported to Grafana Cloud → visible in SM dashboards.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Testing Failure Detection
+
+Stop demo-app:
+```bash
+docker compose -f infra/docker-compose.yml stop demo-app
+```
+
+Wait 1-2 minutes. Observe:
+- Check status changes to **Down** (red)
+- Uptime percentage drops
+- Error log shows connection refused
+
+Restart:
+```bash
+docker compose -f infra/docker-compose.yml start demo-app
+```
+
+<aside class="notes">
+Public cloud probes would never detect this failure — demo-app not exposed to internet. Private probe monitored internal service invisible to external observers.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Private Probe vs DD Private Locations
+
+| Feature | Grafana SM | DataDog |
+|---|---|---|
+| Agent image size | ~50 MB | Heavier (varies) |
+| Connectivity | Outbound HTTPS only | Often requires additional config |
+| Results location | Same Grafana dashboards | Separate DD Synthetics portal |
+| Proxy support | Standard environment variables | Agent-specific configuration |
+| Cost model | Included in SM | Separate enterprise feature |
+
+<aside class="notes">
+SM private probes lighter, require no inbound connectivity, report into same Grafana platform as metrics and logs.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Network Configuration Best Practices
+
+When probe and target are in different Docker networks:
+
+**Option 1:** Join networks explicitly (recommended)
+```yaml
+networks:
+  - k6workshop
+```
+
+**Option 2:** Use host network mode (less secure)
+```yaml
+network_mode: host
+```
+
+**Option 3:** Expose target on host port (if containerized target)
+
+<aside class="notes">
+Always prefer explicit network joining — most secure and maintainable approach.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Troubleshooting Private Probes
+
+Common issues:
+
+| Symptom | Likely Cause | Fix |
+|---------|--------------|-----|
+| Probe shows Offline | Wrong token | Verify SM_ACCESS_TOKEN exact match |
+| Connection refused to target | Wrong hostname | Use container name, not localhost |
+| Timeout on all checks | Network isolation | Join correct Docker network |
+| TLS errors | Wrong API address | Check SM_API_SERVER_ADDRESS region |
+
+<aside class="notes">
+Most issues are token typos or network configuration. Check probe logs first — they're very descriptive.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Use Cases for Private Probes
+
+| Scenario | Why Private Probe Needed |
+|----------|--------------------------|
+| Staging environment | Not exposed to internet |
+| Internal APIs | Behind corporate firewall |
+| Database health endpoints | No public IP |
+| VPN-only services | Requires network access |
+| Pre-production testing | Isolated network segment |
+
+Private probe extends SM reach to entire internal infrastructure.
+
+<aside class="notes">
+Common pattern: public probes monitor production public endpoints, private probes monitor staging and internal services.
+</aside>
+</textarea>
+</section>
+
+<section data-markdown>
+<textarea data-template>
+## Key Takeaways
+
+- k6 Studio records browser sessions and generates standard k6 JavaScript
+- Correlation rules extract dynamic values and inject into subsequent requests
+- Generated scripts are starting points — review and trim before committing
+- Private probes run inside your network, poll SM for check definitions
+- Probe uses outbound-only HTTPS — no inbound firewall ports required
+- Probe results appear in same SM dashboards as public probe checks
+- Join Docker networks explicitly for probe-to-target connectivity
+- Private probes extend SM reach to staging, internal APIs, VPN-only services
+
+<aside class="notes">
+k6 Studio and private probes complete the observability coverage — complex flows recorded automatically, internal services monitored continuously.
+</aside>
+</textarea>
+</section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ],
+            slideNumber: 'c/t',
+            showSlideNumber: 'all'
+        });
+    </script>
+</body>
+</html>
