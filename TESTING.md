@@ -247,8 +247,8 @@ The test harness expects the following Docker services to be available:
 | `influxdb` | 8086 | Labs 06, 29 |
 | `grafana` | 3030 | Labs 06, 29 |
 | `prometheus` | 9090 | Lab 07 |
-| `otel-collector` | 4317, 4318 | Lab 18 |
-| `jaeger` | 16686 | Lab 18 |
+| `alloy` | 4317, 4318 (OTLP), 12345 (UI) | Lab 18 |
+| `tempo` | 3200 | Lab 18 |
 | `ws-echo` | 8765 | WebSocket tests |
 | `fake-dd-agent` | 8125, 8126 | Lab 27 |
 
