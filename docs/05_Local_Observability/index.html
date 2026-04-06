@@ -15,6 +15,7 @@
         <div class="slides">
 
 <section data-background-image="grot.jpg" data-background-size="contain" data-background-color="#000">
+<aside class="notes">Now let's see where those metrics actually go — real dashboards, real-time.</aside>
 </section>
 
 <section data-markdown>
@@ -26,7 +27,7 @@ Streaming Results to InfluxDB, Grafana, and Prometheus
 <small>Navigate: [All Slides](../index.html) | [Prev: Advanced Scripting](../04_Advanced_Scripting/index.html) | [Next: Cloud Integration](../06_Cloud_Integration/index.html)</small>
 
 <aside class="notes">
-This module covers streaming k6 metrics to local observability backends for real-time monitoring and post-test analysis.
+In this module, we'll stream k6 metrics to InfluxDB and Prometheus and visualize them in Grafana.
 </aside>
 </textarea>
 </section>
@@ -280,7 +281,7 @@ output: Prometheus remote write (http://localhost:9090/api/v1/write)
 ```
 
 <aside class="notes">
-The experimental prefix means the API may change in future k6 releases, but the feature is production-ready for most use cases.
+The 'experimental' prefix is a legacy name — the feature has been stable for a while. In newer k6 versions, you may see it called just 'prometheus-rw'. Either way, it works the same.
 </aside>
 </textarea>
 </section>

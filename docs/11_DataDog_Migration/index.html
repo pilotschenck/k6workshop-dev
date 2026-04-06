@@ -15,6 +15,7 @@
         <div class="slides">
 
 <section data-background-image="grot.jpg" data-background-size="contain" data-background-color="#000">
+<aside class="notes">This one's for anyone coming from — or selling against — DataDog.</aside>
 </section>
 
 <section data-markdown>
@@ -26,7 +27,7 @@ Concept Mapping and Practical Migration Paths
 <small>Navigate: [All Slides](../index.html) | [Prev: Observability Integration](../10_Observability_Integration/index.html) | [Next: Capstone Project](../12_Capstone_Project/index.html)</small>
 
 <aside class="notes">
-This module covers Labs 26-28: DataDog concept mapping, migrating DD synthetic tests to k6, and migrating DD monitors to Grafana alerting.
+Labs 26 through 28: DataDog concept mapping, migrating DataDog synthetic tests to k6, and migrating DataDog monitors to Grafana alerting.
 </aside>
 </textarea>
 </section>
@@ -100,7 +101,7 @@ Biggest mental shift: Grafana Notification Policies decouple routing from alert 
 | DD Custom Metrics | k6 Custom Metrics |
 
 <aside class="notes">
-All use open standards: OpenTelemetry, Jaeger, PromQL, LogQL. Same mental model, different query languages.
+Built on open standards: OpenTelemetry for traces, PromQL for metrics, LogQL for logs. Same mental model, different query languages.
 </aside>
 </textarea>
 </section>
@@ -119,7 +120,7 @@ All use open standards: OpenTelemetry, Jaeger, PromQL, LogQL. Same mental model,
 | Browser Test | SM Browser Check | DD uses recorder; SM uses k6 browser JS |
 
 <aside class="notes">
-Key SM advantage: every scripted check and browser check runs same k6 JavaScript as load testing. No second language.
+Key Synthetic Monitoring advantage: every scripted check and browser check runs same k6 JavaScript as load testing. No second language.
 </aside>
 </textarea>
 </section>
@@ -136,7 +137,7 @@ Honest assessment:
 - Longer track record in large enterprise environments
 
 <aside class="notes">
-DD's no-code recorder and polished UI are real advantages for non-technical users.
+DataDog's no-code recorder and polished UI are real advantages for non-technical users.
 </aside>
 </textarea>
 </section>
@@ -175,7 +176,7 @@ Field-by-field mapping from DD test JSON to k6 script:
 | options.tick_every | SM check frequency |
 
 <aside class="notes">
-Translation is mechanical once you know the pattern. Every DD field has a k6 destination.
+Translation is mechanical once you know the pattern. Every DataDog field has a k6 destination.
 </aside>
 </textarea>
 </section>
@@ -193,7 +194,7 @@ Translation is mechanical once you know the pattern. Every DD field has a k6 des
 | header contains "json" | `'json type': (r) => r.headers['Content-Type'].includes('json')` |
 
 <aside class="notes">
-Pattern is consistent: every DD assertion becomes one key-value pair inside check() call.
+Pattern is consistent: every DataDog assertion becomes one key-value pair inside check() call.
 </aside>
 </textarea>
 </section>
@@ -274,7 +275,7 @@ k6 approach is simpler: variables are plain JavaScript variables passed between 
 | Frequency < 1 minute | SM minimum is 1 minute | Not supported in SM |
 
 <aside class="notes">
-Most DD features have k6 equivalents. Main gaps: no-code builders and sub-minute frequency.
+Most DataDog features have k6 equivalents. Main gaps: no-code builders and sub-minute frequency.
 </aside>
 </textarea>
 </section>
@@ -298,7 +299,7 @@ DD monitor structure:
 ```
 
 <aside class="notes">
-Biggest structural shift: DD embeds routing in monitor messages. Grafana separates routing into Notification Policies using alert labels.
+Biggest structural shift: DataDog embeds routing in monitor messages. Grafana separates routing into Notification Policies using alert labels.
 </aside>
 </textarea>
 </section>
@@ -319,7 +320,7 @@ Biggest structural shift: DD embeds routing in monitor messages. Grafana separat
 | {{value}} | `{{ $values.A.Value }}` |
 
 <aside class="notes">
-DD single monitor with warning + critical maps to two Grafana rules with severity labels — more rules, more flexible routing.
+DataDog single monitor with warning + critical maps to two Grafana rules with severity labels — more rules, more flexible routing.
 </aside>
 </textarea>
 </section>
@@ -383,7 +384,7 @@ Grafana approach provides more flexibility: change routing without touching aler
 | `{{threshold}}` | Hardcode in string or store as label |
 
 <aside class="notes">
-DD uses Handlebars-style templates. Grafana uses Go templates. Same logical structure, different syntax.
+DataDog uses Handlebars-style templates. Grafana uses Go templates. Same logical structure, different syntax.
 </aside>
 </textarea>
 </section>

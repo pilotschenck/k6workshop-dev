@@ -15,6 +15,7 @@
         <div class="slides">
 
 <section data-background-image="grot.jpg" data-background-size="contain" data-background-color="#000">
+<aside class="notes">We're shifting gears from load testing into always-on monitoring.</aside>
 </section>
 
 <section data-markdown>
@@ -26,7 +27,7 @@ Continuous Uptime Monitoring with Grafana SM
 <small>Navigate: [All Slides](../index.html) | [Prev: Cloud Integration](../06_Cloud_Integration/index.html) | [Next: Browser Testing](../08_Browser_Testing/index.html)</small>
 
 <aside class="notes">
-This module covers Labs 10-13: Grafana Synthetic Monitoring introduction, HTTP checks, DNS/TCP checks, and scripted checks.
+Labs 10 through 13: Grafana Synthetic Monitoring introduction, HTTP checks, DNS/TCP checks, and scripted checks.
 </aside>
 </textarea>
 </section>
@@ -42,7 +43,7 @@ Continuous, scheduled checks from global probe locations that answer:
 From the perspective of users around the world.
 
 <aside class="notes">
-Synthetic Monitoring is fundamentally different from load testing. SM runs 1 VU on a schedule to verify functionality, while load testing runs many VUs to find performance limits.
+Synthetic Monitoring is fundamentally different from load testing. Synthetic Monitoring runs 1 VU on a schedule to verify functionality, while load testing runs many VUs to find performance limits.
 </aside>
 </textarea>
 </section>
@@ -62,7 +63,7 @@ Synthetic Monitoring is fundamentally different from load testing. SM runs 1 VU 
 You use both: SM for always-on visibility, k6 for periodic performance analysis.
 
 <aside class="notes">
-Think of SM as your smoke detector and k6 as your stress test lab. Both are essential for different purposes.
+Think of Synthetic Monitoring as your smoke detector and k6 as your stress test lab. Both are essential for different purposes.
 </aside>
 </textarea>
 </section>
@@ -78,7 +79,7 @@ Both run scheduled HTTP checks from global locations, both alert on failures, bo
 **Key difference:** SM results live natively in Grafana alongside metrics, logs, and traces. No separate portal.
 
 <aside class="notes">
-With DD you switch between Synthetics portal and APM dashboards. With Grafana everything is in one unified interface.
+With DataDog, you switch between Synthetics portal and APM dashboards. With Grafana everything is in one unified interface.
 </aside>
 </textarea>
 </section>
@@ -159,7 +160,7 @@ TLS: Verify SSL certificate enabled
 ```
 
 <aside class="notes">
-Certificate expiry is one of the most common causes of unexpected outages. SM with TLS validation catches this weeks before expiry.
+Certificate expiry is one of the most common causes of unexpected outages. Synthetic Monitoring with TLS validation catches this weeks before expiry.
 </aside>
 </textarea>
 </section>
@@ -259,7 +260,7 @@ Results show:
 Resolution time varies by location: Singapore probe querying US nameserver will be slower than Virginia.
 
 <aside class="notes">
-DNS check response time is NOT HTTP latency. Comparing the two directly is meaningless — they measure different layers.
+DNS check response time is NOT HTTP latency. Comparing the two directly is not useful — they measure different layers.
 </aside>
 </textarea>
 </section>
@@ -295,7 +296,7 @@ Upload a k6 script to run as a scheduled synthetic monitor.
 Constraint: SM scripted checks run with 1 VU on a schedule — not load tests.
 
 <aside class="notes">
-A script you develop locally with k6 run can be uploaded to SM with minimal or no changes.
+A script you develop locally with k6 run can be uploaded to Synthetic Monitoring with minimal or no changes.
 </aside>
 </textarea>
 </section>
@@ -326,7 +327,7 @@ export default function () {
 ```
 
 <aside class="notes">
-Each check name appears as an individual pass/fail row in SM results dashboard. Choose names that make failures self-explanatory.
+Each check name appears as an individual pass/fail row in the Synthetic Monitoring results dashboard. Choose names that make failures self-explanatory.
 </aside>
 </textarea>
 </section>
@@ -346,7 +347,7 @@ Watch for check pass/fail counts. Fix failures locally — diagnosing through SM
 SM ignores `vus` and `duration` options. Keep them for local testing.
 
 <aside class="notes">
-A script that fails locally will fail in SM too. Local terminal output is more informative than SM's UI for debugging.
+A script that fails locally will fail in Synthetic Monitoring too. Local terminal output is more informative than the Synthetic Monitoring UI for debugging.
 </aside>
 </textarea>
 </section>
@@ -403,7 +404,7 @@ If your workflow has more than 5-6 steps, consider splitting into multiple scrip
 Significant advantage: shared k6 skills across load testing and synthetic monitoring.
 
 <aside class="notes">
-In DD, your load testing tool (JMeter, Gatling) and synthetic tool are separate products. In Grafana ecosystem, k6 is the language for both.
+In DataDog, your load testing tool (JMeter, Gatling) and synthetic tool are separate products. In Grafana ecosystem, k6 is the language for both.
 </aside>
 </textarea>
 </section>
@@ -420,7 +421,7 @@ In DD, your load testing tool (JMeter, Gatling) and synthetic tool are separate 
 - SM results are native Grafana data: dashboards, alerting, SLOs work without export
 
 <aside class="notes">
-SM is the always-on layer; k6 is the on-demand layer. Together they give complete observability of availability and performance.
+Synthetic Monitoring is the always-on layer; k6 is the on-demand layer. Together they give complete observability of availability and performance.
 </aside>
 </textarea>
 </section>

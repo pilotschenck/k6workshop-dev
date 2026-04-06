@@ -15,6 +15,7 @@
         <div class="slides">
 
 <section data-background-image="grot.jpg" data-background-size="contain" data-background-color="#000">
+<aside class="notes">Get settled in — we'll start with environment setup once everyone's ready.</aside>
 </section>
 
 <section data-markdown>
@@ -67,7 +68,7 @@ Make sure Docker Desktop is running before proceeding. On macOS, you'll see the 
 <textarea data-template>
 ## Workshop Infrastructure
 
-The `docker-compose.yml` starts 9 services:
+The `docker-compose.yml` starts 10 services:
 
 - **demo-app** (port 3000) — target application
 - **broken-app** (port 3001) — intentionally misconfigured
@@ -81,7 +82,7 @@ The `docker-compose.yml` starts 9 services:
 - **ws-echo** (port 8765) — WebSocket echo server
 
 <aside class="notes">
-This comprehensive stack gives you everything needed for k6 load testing, observability, and synthetic monitoring. Note that Grafana runs on port 3030, not the default 3000, to avoid conflicts with demo-app.
+This stack gives you everything you need for k6 load testing, observability, and synthetic monitoring. Note that Grafana runs on port 3030, not the default 3000, to avoid conflicts with demo-app.
 </aside>
 </textarea>
 </section>

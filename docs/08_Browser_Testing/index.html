@@ -15,6 +15,7 @@
         <div class="slides">
 
 <section data-background-image="grot.jpg" data-background-size="contain" data-background-color="#000">
+<aside class="notes">Now we're getting into real browser-level testing.</aside>
 </section>
 
 <section data-markdown>
@@ -26,7 +27,7 @@ k6 Browser Module and Mixed Protocol Testing
 <small>Navigate: [All Slides](../index.html) | [Prev: Synthetic Basics](../07_Synthetic_Monitoring_Basics/index.html) | [Next: Synthetic Advanced](../09_Synthetic_Advanced_Features/index.html)</small>
 
 <aside class="notes">
-This module covers Labs 14-18: k6 browser module introduction, browser interactions, mixed HTTP+browser testing, browser synthetics, and OpenTelemetry tracing.
+Labs 14 through 18: k6 browser module introduction, browser interactions, mixed HTTP+browser testing, browser synthetics, and OpenTelemetry tracing.
 </aside>
 </textarea>
 </section>
@@ -457,7 +458,7 @@ SM supports browser checks — runs k6 browser script from cloud probes on sched
 Script you run locally with `k6 run` can be pasted directly into SM.
 
 <aside class="notes">
-DataDog Browser tests use recorder-generated format. With k6+SM you maintain ONE scripting language for load testing and synthetic monitoring.
+DataDog Browser tests use recorder-generated format. With k6 and Synthetic Monitoring you maintain one scripting language for load testing and synthetic monitoring.
 </aside>
 </textarea>
 </section>
@@ -485,7 +486,7 @@ export const options = {
 ```
 
 <aside class="notes">
-Use shared-iterations executor. SM runs exactly one iteration per scheduled check.
+Use shared-iterations executor. Synthetic Monitoring runs exactly one iteration per scheduled check.
 </aside>
 </textarea>
 </section>
@@ -519,7 +520,7 @@ export default async function () {
 ```
 
 <aside class="notes">
-Always test locally first with K6_BROWSER_HEADLESS=true k6 run before uploading to SM.
+Always test locally first with K6_BROWSER_HEADLESS=true k6 run before uploading to Synthetic Monitoring.
 </aside>
 </textarea>
 </section>

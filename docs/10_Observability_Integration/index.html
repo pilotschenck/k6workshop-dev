@@ -15,6 +15,7 @@
         <div class="slides">
 
 <section data-background-image="grot.jpg" data-background-size="contain" data-background-color="#000">
+<aside class="notes">Two features that fill important gaps — k6 Studio and private probes.</aside>
 </section>
 
 <section data-markdown>
@@ -26,7 +27,7 @@ Feature Awareness and Private Probes
 <small>Navigate: [All Slides](../index.html) | [Prev: Synthetic Advanced](../09_Synthetic_Advanced_Features/index.html) | [Next: DataDog Migration](../11_DataDog_Migration/index.html)</small>
 
 <aside class="notes">
-This module covers Labs 24-25: k6 Studio for recording user journeys and private probes for monitoring internal services.
+Labs 24 and 25: k6 Studio for recording user journeys and private probes for monitoring internal services.
 </aside>
 </textarea>
 </section>
@@ -42,7 +43,7 @@ Advanced integration features:
 These tools close critical gaps: recording complex flows and reaching non-public services.
 
 <aside class="notes">
-k6 Studio solves the blank-page problem. Private probes let SM monitor internal services behind firewalls.
+k6 Studio solves the blank-page problem. Private probes let Synthetic Monitoring monitor internal services behind firewalls.
 </aside>
 </textarea>
 </section>
@@ -58,7 +59,7 @@ Desktop application that records real browser sessions and generates k6 test scr
 Output is standard k6 JavaScript — human-readable, version-controllable, runs anywhere.
 
 <aside class="notes">
-If you came from DataDog: DD Synthetic Recorder generates proprietary format. k6 Studio generates standard k6 JavaScript — no vendor lock-in.
+If you came from DataDog: DataDog Synthetic Recorder generates proprietary format. k6 Studio generates standard k6 JavaScript — no vendor lock-in.
 </aside>
 </textarea>
 </section>
@@ -408,7 +409,7 @@ Public cloud probes would never detect this failure — demo-app not exposed to 
 | Cost model | Included in SM | Separate enterprise feature |
 
 <aside class="notes">
-SM private probes lighter, require no inbound connectivity, report into same Grafana platform as metrics and logs.
+Synthetic Monitoring private probes lighter, require no inbound connectivity, report into same Grafana platform as metrics and logs.
 </aside>
 </textarea>
 </section>

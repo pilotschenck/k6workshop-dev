@@ -15,6 +15,7 @@
         <div class="slides">
 
 <section data-background-image="grot.jpg" data-background-size="contain" data-background-color="#000">
+<aside class="notes">Home stretch — advanced features that tie everything together.</aside>
 </section>
 
 <section data-markdown>
@@ -26,7 +27,7 @@ Structured Logging, Custom Metrics, Extensions, Alerting, and SLOs
 <small>Navigate: [All Slides](../index.html) | [Prev: Browser Testing](../08_Browser_Testing/index.html) | [Next: Observability Integration](../10_Observability_Integration/index.html)</small>
 
 <aside class="notes">
-This module covers Labs 19-23: structured logging, custom metrics, k6 extensions, alerting on SM results, and SLOs with error budgets.
+Labs 19 through 23: structured logging, custom metrics, k6 extensions, alerting on Synthetic Monitoring results, and SLOs with error budgets.
 </aside>
 </textarea>
 </section>
@@ -278,7 +279,7 @@ loginSuccessRate.add(loginRes.status === 200, {
 Tags appear as labels in Prometheus, fields in InfluxDB — filter in Grafana panels.
 
 <aside class="notes">
-No per-distinct-tag-combination pricing like DataDog. Define as many domain-specific metrics as needed.
+Grafana's pricing model is more forgiving of high-cardinality tags. Define as many domain-specific metrics as needed.
 </aside>
 </textarea>
 </section>
@@ -296,7 +297,7 @@ k6 is extensible via **xk6** (extend k6) build system.
 - `k6/experimental/websockets` — WebSocket client
 
 <aside class="notes">
-Called "experimental" because APIs may stabilize and move to non-experimental paths — not because they're unstable.
+Called "experimental" because APIs may stabilize and move to non-experimental paths — not because they're unstable. Note: the browser module has since graduated — it's now imported as k6/browser, not k6/experimental/browser.
 </aside>
 </textarea>
 </section>
@@ -390,7 +391,7 @@ avg_over_time(probe_success{job="Workshop Demo"}[5m])
 ```
 
 <aside class="notes">
-SM auto-generates uptime and response time rules. You can customize thresholds or create entirely new rules from scratch.
+Synthetic Monitoring auto-generates uptime and response time rules. You can customize thresholds or create entirely new rules from scratch.
 </aside>
 </textarea>
 </section>
@@ -508,7 +509,7 @@ Rolling window: 30 days
 Grafana auto-generates error budget dashboard and calculations.
 
 <aside class="notes">
-After saving, SM shows current status, error budget remaining, burn rate graph, and compliance history.
+After saving, Synthetic Monitoring shows current status, error budget remaining, burn rate graph, and compliance history.
 </aside>
 </textarea>
 </section>
@@ -553,7 +554,7 @@ Team agreement for decision-making:
 Post this policy in team Slack/wiki.
 
 <aside class="notes">
-The policy works only if engineers trust the SLI measurement. SM probes are independent of app infrastructure — measure what users experience.
+The policy works only if engineers trust the SLI measurement. Synthetic Monitoring probes are independent of app infrastructure — measure what users experience.
 </aside>
 </textarea>
 </section>

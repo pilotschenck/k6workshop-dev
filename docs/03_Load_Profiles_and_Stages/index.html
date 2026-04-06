@@ -15,6 +15,7 @@
         <div class="slides">
 
 <section data-background-image="grot.jpg" data-background-size="contain" data-background-color="#000">
+<aside class="notes">Time to move beyond flat load and shape traffic realistically.</aside>
 </section>
 
 <section data-markdown>
@@ -26,7 +27,7 @@ Ramping Load for Realistic Testing
 <small>Navigate: [All Slides](../index.html) | [Prev: HTTP Testing](../02_HTTP_Testing_Checks_Thresholds/index.html) | [Next: Advanced Scripting](../04_Advanced_Scripting/index.html)</small>
 
 <aside class="notes">
-This module teaches you how to create realistic load profiles with ramp-up, sustain, and ramp-down stages.
+In this module, we'll create realistic load profiles with ramp-up, sustain, and ramp-down stages.
 </aside>
 </textarea>
 </section>
@@ -114,7 +115,7 @@ stages: [
 | 3 | 30s | 0 | Linear ramp from 10 → 0 VUs |
 
 <aside class="notes">
-k6 interpolates VU count linearly between stages. If the previous stage ended at 5 VUs and the next targets 10, k6 adds VUs gradually over the stage duration.
+k6 linearly interpolates the VU count over each stage's duration. In Stage 1 here, it ramps from 0 to 10 over 30 seconds.
 </aside>
 </textarea>
 </section>
