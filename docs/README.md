@@ -42,10 +42,10 @@ docs/
 │   └── index.html                           # Labs 08-09 slides
 ├── 07_Synthetic_Monitoring_Basics/
 │   └── index.html                           # Labs 10-13 slides
-├── 08_Synthetic_Advanced_Features/
-│   └── index.html                           # Labs 19-23 slides
-├── 09_Browser_Testing/
+├── 08_Browser_Testing/
 │   └── index.html                           # Labs 14-18 slides
+├── 09_Synthetic_Advanced_Features/
+│   └── index.html                           # Labs 19-23 slides
 ├── 10_Observability_Integration/
 │   └── index.html                           # Labs 24-25 slides
 ├── 11_DataDog_Migration/
@@ -71,12 +71,12 @@ docs/
 
 ### Track 3: Grafana Synthetic Monitoring
 - **Lab 07**: Synthetic Monitoring Basics - HTTP, DNS, TCP, workflow checks
-- **Lab 08**: Synthetic Advanced Features - Logging, metrics, extensions, SLOs
-- **Lab 09**: Browser Testing - k6 browser module, OTEL tracing
+- **Lab 08**: Browser Testing - k6 browser module, OTEL tracing
+- **Lab 09**: Synthetic Advanced Features - Logging, metrics, extensions, SLOs
 
 ### Track 4: Production Integration
 - **Lab 10**: Observability Integration - k6 Studio, private probes
-- **Lab 11**: DataDog Migration - Migrating from DD to Grafana
+- **Lab 11**: DataDog Migration - Migrating from DataDog to Grafana
 - **Lab 12**: Capstone Project - End-to-end observability implementation
 
 ## 🚀 Features
