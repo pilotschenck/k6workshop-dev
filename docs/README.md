@@ -59,22 +59,22 @@ docs/
 ### Getting Started
 - **Lab 00**: Setup and Environment - Pre-lab environment preparation
 
-### Module 1: k6 Load Testing Fundamentals
+### Track 1: k6 Load Testing Fundamentals
 - **Lab 01**: k6 Fundamentals - VUs, duration, iterations
 - **Lab 02**: HTTP Testing, Checks & Thresholds - Validation and pass/fail criteria
 - **Lab 03**: Load Profiles and Stages - Realistic load patterns
 
-### Module 2: Advanced k6 Scripting
+### Track 2: Advanced k6 Scripting
 - **Lab 04**: Advanced Scripting - Groups, tags, parameterization
 - **Lab 05**: Local Observability - InfluxDB, Grafana, Prometheus
 - **Lab 06**: Cloud Integration - JSON output, k6 Cloud, Grafana Cloud
 
-### Module 3: Grafana Synthetic Monitoring
+### Track 3: Grafana Synthetic Monitoring
 - **Lab 07**: Synthetic Monitoring Basics - HTTP, DNS, TCP, workflow checks
 - **Lab 08**: Synthetic Advanced Features - Logging, metrics, extensions, SLOs
 - **Lab 09**: Browser Testing - k6 browser module, OTEL tracing
 
-### Module 4: Production Integration
+### Track 4: Production Integration
 - **Lab 10**: Observability Integration - k6 Studio, private probes
 - **Lab 11**: DataDog Migration - Migrating from DD to Grafana
 - **Lab 12**: Capstone Project - End-to-end observability implementation

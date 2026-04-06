@@ -58,7 +58,7 @@ See **[TESTING.md](TESTING.md)** for complete documentation on the test harness,
 |---|---|---|
 | 00 — Setup and Environment | Lab 00 | Pre-lab environment preparation, Docker services, and smoke check |
 
-### Module 1: k6 Load Testing Fundamentals
+### Track 1: k6 Load Testing Fundamentals
 
 | Module | Labs | Description |
 |---|---|---|
@@ -66,7 +66,7 @@ See **[TESTING.md](TESTING.md)** for complete documentation on the test harness,
 | 02 — HTTP Testing, Checks & Thresholds | Lab 02 | Response validation with checks, pass/fail thresholds, exit codes |
 | 03 — Load Profiles and Stages | Lab 03 | Ramping stages, spike/soak patterns, open vs closed models |
 
-### Module 2: Advanced k6 Scripting
+### Track 2: Advanced k6 Scripting
 
 | Module | Labs | Description |
 |---|---|---|
@@ -74,7 +74,7 @@ See **[TESTING.md](TESTING.md)** for complete documentation on the test harness,
 | 05 — Local Observability | Labs 06–07 | InfluxDB and Prometheus output, real-time Grafana dashboards |
 | 06 — Cloud Integration | Labs 08–09 | JSON output, handleSummary, k6 Cloud run |
 
-### Module 3: Grafana Synthetic Monitoring
+### Track 3: Grafana Synthetic Monitoring
 
 | Module | Labs | Description |
 |---|---|---|
@@ -82,7 +82,7 @@ See **[TESTING.md](TESTING.md)** for complete documentation on the test harness,
 | 08 — Browser Testing | Labs 14–18 | k6 browser module, mixed HTTP+browser tests, OpenTelemetry tracing |
 | 09 — Synthetic Advanced Features | Labs 19–23 | Structured logging, custom metrics, extensions, alerting, SLOs |
 
-### Module 4: Production Integration
+### Track 4: Production Integration
 
 | Module | Labs | Description |
 |---|---|---|
