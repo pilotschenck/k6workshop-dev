@@ -120,7 +120,11 @@ grep -q "K6_PROMETHEUS_RW_SERVER_URL" /etc/environment 2>/dev/null \
   || echo 'K6_PROMETHEUS_RW_SERVER_URL=http://localhost:9090/api/v1/write' >> /etc/environment
 
 # Also write to workshop user's .bashrc so they take effect in interactive shells
-USER_BASHRC="/home/${WORKSHOP_USER}/.bashrc"
+if [ "$WORKSHOP_USER" = "root" ]; then
+  USER_BASHRC="/root/.bashrc"
+else
+  USER_BASHRC="/home/${WORKSHOP_USER}/.bashrc"
+fi
 grep -q "K6_BROWSER_HEADLESS" "$USER_BASHRC" 2>/dev/null \
   || echo 'export K6_BROWSER_HEADLESS=true' >> "$USER_BASHRC"
 grep -q "K6_PROMETHEUS_RW_SERVER_URL" "$USER_BASHRC" 2>/dev/null \
