@@ -7,13 +7,17 @@
 set -euo pipefail
 
 # ── Configuration ────────────────────────────────────────────────────────────
-WORKSHOP_USER="${SUDO_USER:-$(logname 2>/dev/null || echo aschenck)}"
+if [ "$(id -u)" = "0" ] && [ -z "${SUDO_USER:-}" ]; then
+  WORKSHOP_USER="root"
+else
+  WORKSHOP_USER="${SUDO_USER:-$(logname 2>/dev/null || id -un)}"
+fi
 if [ "$WORKSHOP_USER" = "root" ]; then
   WORKSHOP_HOME="/root"
 else
   WORKSHOP_HOME="/home/${WORKSHOP_USER}"
 fi
-WORKSHOP_DIR="${WORKSHOP_HOME}/lab/k6workshop-dev"
+WORKSHOP_DIR="${WORKSHOP_HOME}/k6workshop-dev"
 LOG_FILE="/var/log/workshop-prereqs.log"
 
 echo "=== k6 Workshop Prerequisites ===" | tee "$LOG_FILE"
