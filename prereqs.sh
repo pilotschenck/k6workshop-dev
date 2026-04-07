@@ -219,7 +219,7 @@ check "InfluxDB (8086)"    "curl -sf http://localhost:8086/ping"
 check "Grafana (3030)"     "curl -sf http://localhost:3030/api/health"
 check "Prometheus (9090)"  "curl -sf http://localhost:9090/-/ready"
 check "Alloy (12345)"      "curl -sf -o /dev/null http://localhost:12345/"
-check "ws-echo (8765)"     "curl -sf http://localhost:8765"
+check "ws-echo (8765)"     "nc -z localhost 8765"
 
 echo "" | tee -a "$LOG_FILE"
 echo "=== Setup complete. Log: $LOG_FILE ===" | tee -a "$LOG_FILE"
