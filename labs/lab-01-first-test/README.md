@@ -16,6 +16,12 @@ Write and run your first k6 load test, then read the terminal output to understa
 
 ## Instructions
 
+### Step 0: Make sure you are in the k6workshop-dev directory!
+
+```bash
+cd k6workshop-dev
+```
+
 ### Step 1: Examine the Starter Script
 
 Open the starter script in your editor. Its full content is shown below so you can follow along without switching windows:
