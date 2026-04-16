@@ -32,8 +32,8 @@ export default async function () {
   const page = await browser.newPage();
 
   try {
-    // Navigate to the httpbin HTML page — it renders real HTML with a page title
-    await page.goto('http://localhost:8080/html');
+    // Navigate to the demo app's home page — it renders a real HTML page with a <title>
+    await page.goto('http://localhost:3000/');
 
     // Retrieve the <title> element text
     const title = await page.title();

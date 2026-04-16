@@ -70,7 +70,7 @@ export const options = {
 
 ### Step 3: Navigate to a Page
 
-The demo app returns JSON, so this lab uses httpbin's HTML endpoint at `http://localhost:8080/html`.
+The demo app serves a full HTML status page at its root path (`http://localhost:3000/`) — it lists the available endpoints and has a real `<title>` tag, which makes it a good target for a browser test.
 
 ```javascript
 import { browser } from 'k6/browser';
@@ -79,7 +79,7 @@ export default async function () {
   const page = await browser.newPage();
 
   try {
-    await page.goto('http://localhost:8080/html');
+    await page.goto('http://localhost:3000/');
     // page is now loaded
   } finally {
     await page.close();
@@ -155,7 +155,7 @@ k6 forwards `console.log`, `console.warn`, and `console.error` calls from the br
   scenarios (100.00%) 1 scenario, 1 max VUs, 10m30s max duration (incl. graceful stop):
            * browser_test: 1 iterations shared [exec: default] ...
 
-INFO[0002] Page title: Herman Melville - Moby-Dick       source=console
+INFO[0002] Page title: Demo App — k6 Workshop            source=console
 
 ✓ page title is not empty
 

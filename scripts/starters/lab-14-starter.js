@@ -33,7 +33,7 @@ export default async function () {
   const page = await browser.newPage();
 
   try {
-    // TODO: Navigate to the httpbin HTML page at http://localhost:8080/html
+    // TODO: Navigate to the demo app's home page at http://localhost:3000/
     //   await page.goto('...');
 
     // TODO: Get the page title and log it with console.log
