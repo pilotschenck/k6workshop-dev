@@ -30,7 +30,7 @@ export default function () {
   // TODO: Wrap this block in group('auth', function () { ... })
   // POST to /login with { username: 'user1', password: 'pass1' } and Content-Type: application/json
   // Add a tag: { name: 'post-login' }
-  // Add a check that status is 200
+  // Add two checks: status is 200, and response time is under 1s (r.timings.duration < 1000)
   {
     const loginPayload = JSON.stringify({ username: 'user1', password: 'pass1' });
     const loginParams = { headers: { 'Content-Type': 'application/json' } };

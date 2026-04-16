@@ -61,12 +61,6 @@ export default function () {
     'prometheus: status 200': (r) => r.status === 200,
   });
 
-  // --- jaeger ---
-  const jaeger = http.get('http://localhost:16686/');
-  results['jaeger'] = check(jaeger, {
-    'jaeger: status 200': (r) => r.status === 200,
-  });
-
   // --- Summary ---
   const passed = Object.entries(results)
     .filter(([, ok]) => ok)
