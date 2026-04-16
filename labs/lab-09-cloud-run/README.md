@@ -58,6 +58,8 @@ Open the starter script to understand what it tests:
 import http from 'k6/http';
 import { sleep } from 'k6';
 
+const BASE_URL = `https://grafana-workstation-3000u-${__ENV.INSTRUQT_PARTICIPANT_ID}.env.play.instruqt.com`;
+
 export const options = {
   vus: 2,
   duration: '30s',
@@ -65,11 +67,11 @@ export const options = {
 
 export default function () {
   // Home page
-  http.get('http://localhost:3000/');
+  http.get(`${BASE_URL}/`);
   sleep(1);
 
   // Product catalog
-  http.get('http://localhost:3000/api/products');
+  http.get(`${BASE_URL}/api/products`);
   sleep(1);
 
   // Login endpoint
@@ -78,12 +80,14 @@ export default function () {
     password: 'password123',
   });
   const params = { headers: { 'Content-Type': 'application/json' } };
-  http.post('http://localhost:3000/login', payload, params);
+  http.post(`${BASE_URL}/login`, payload, params);
   sleep(1);
 }
 ```
 
-The script hits three endpoints on the local demo-app with 2 VUs for 30 seconds. Simple and intentional — you want to be able to compare the local vs cloud experience on the same workload.
+The script hits three endpoints on the demo-app with 2 VUs for 30 seconds. Simple and intentional — you want to be able to compare the local vs cloud experience on the same workload.
+
+> **Why the proxy URL?** When k6 Cloud executes your script, it runs on Grafana's infrastructure — not on your workstation. That means `http://localhost:3000` resolves to a machine in the cloud, not to your demo-app. Every Instruqt workstation exposes its ports through a public proxy URL of the form `https://grafana-workstation-<port>u-<participant-id>.env.play.instruqt.com`. The `INSTRUQT_PARTICIPANT_ID` environment variable is set automatically in your workstation, so the script builds the correct URL at runtime. Use `3000u` for the working demo-app and `3001u` for the broken-app. See the [Instruqt networking docs](https://docs.instruqt.com/reference/platform/networking#overview#inbound-traffic) for details.
 
 ### Step 3: Run Locally First
 
