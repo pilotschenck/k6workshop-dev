@@ -2,6 +2,8 @@
 
 A one-day hands-on workshop covering k6 load testing and Grafana Synthetic Monitoring. Participants will build and run performance tests from first principles, then integrate with Grafana Cloud for observability and synthetic checks.
 
+This workshop is also available on [github pages](https://pilotschenck.github.io/k6workshop-dev/).
+
 ---
 
 ## Prerequisites
