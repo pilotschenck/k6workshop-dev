@@ -95,7 +95,9 @@ Ran both starter and solution against Grafana Cloud k6.
   `time="..." level=error msg="Thresholds have been crossed"`
   Root cause: the 95th-percentile threshold `http_req_duration: ['p(95)<500']` is too tight for cloud executor → Instruqt proxy → demo-app round-trips. Cloud runs observe real WAN latency (hundreds of ms) that 500 ms cannot absorb. Same applies to the inline `check()` assertion `home: response time < 300ms`.
 
-**Fixed in a follow-up commit:** relaxed `p(95)<2000` on the global threshold and bumped the per-endpoint check() timings to 1500 ms with a comment explaining *why* the numbers look loose compared to localhost runs. This lets the cloud run pass out of the box while still flagging real outliers. Students can still demonstrate threshold failures by tightening the number locally.
+**Fixed in follow-up commits:**
+1. First attempt relaxed `p(95)<2000` — still crossed in the cloud run (the Instruqt-proxy path adds enough tail latency to break even a 2 s threshold in some iterations).
+2. Final fix: **removed the thresholds block entirely** from `scripts/solutions/lab-09-solution.js`. The lab's pedagogical goal is comparing local vs. cloud execution and the stage-based load shape — not thresholds, which Lab 02 already covers in depth. Keeping unreliable thresholds here would only confuse students with spurious red in the cloud UI. The per-endpoint `check()` timings were also bumped to 1500 ms so they don't flag cloud latency.
 
 ## Fixes applied this session
 

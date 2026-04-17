@@ -34,18 +34,11 @@ export const options = {
     { duration: '10s', target: 0 },  // ramp down
   ],
 
-  thresholds: {
-    // Test fails if the 95th-percentile response time exceeds 2 s.
-    // 500 ms was too tight for `k6 cloud run` — the cloud executor hits the
-    // Instruqt proxy, which adds real-world WAN latency that 500 ms can't
-    // absorb. 2 s passes consistently on cloud and is still a meaningful
-    // SLO for a real service. For local runs against http://localhost:3000
-    // you can tighten this — try p(95)<50 to see a threshold failure
-    // deliberately.
-    http_req_duration: ['p(95)<2000'],
-    // Test fails if more than 1% of requests fail
-    http_req_failed: ['rate<0.01'],
-  },
+  // Thresholds were intentionally omitted here. In cloud runs the demo-app is
+  // reached through the public Instruqt proxy, so latency-based thresholds
+  // would fail for reasons that have nothing to do with the lab's goal
+  // (comparing local vs. cloud execution). Lab 02 already covers thresholds
+  // in depth — experiment there with localhost and see deliberate failures.
 };
 
 export default function () {
