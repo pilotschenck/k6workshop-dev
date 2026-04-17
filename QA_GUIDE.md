@@ -205,6 +205,18 @@ Projects`). If empty, create one. Without it:
 time="..." level=error msg="(400/E2) No valid default project found."
 ```
 
+**Even if the project exists and is marked Default in the UI**, the
+CLI may still return `(400/E2)`. Run 6 hit this despite `k6 cloud
+login --token=...` succeeding — the org-level default linkage the
+CLI consults was apparently not what the UI showed. Force the
+project via env var:
+
+```bash
+K6_CLOUD_PROJECT_ID=<id> k6 cloud run scripts/...
+```
+
+Get `<id>` from the URL `/a/k6-app/projects/<id>`.
+
 ### Browser wizard has an `Instance` field
 
 Both Browser and Scripted checks require a second field —
