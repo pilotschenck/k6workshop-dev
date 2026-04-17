@@ -35,8 +35,14 @@ export const options = {
   ],
 
   thresholds: {
-    // Test fails if the 95th-percentile response time exceeds 500 ms
-    http_req_duration: ['p(95)<500'],
+    // Test fails if the 95th-percentile response time exceeds 2 s.
+    // 500 ms was too tight for `k6 cloud run` — the cloud executor hits the
+    // Instruqt proxy, which adds real-world WAN latency that 500 ms can't
+    // absorb. 2 s passes consistently on cloud and is still a meaningful
+    // SLO for a real service. For local runs against http://localhost:3000
+    // you can tighten this — try p(95)<50 to see a threshold failure
+    // deliberately.
+    http_req_duration: ['p(95)<2000'],
     // Test fails if more than 1% of requests fail
     http_req_failed: ['rate<0.01'],
   },
@@ -47,7 +53,9 @@ export default function () {
   const homeRes = http.get(`${BASE_URL}/`);
   check(homeRes, {
     'home: status 200': (r) => r.status === 200,
-    'home: response time < 300ms': (r) => r.timings.duration < 300,
+    // 1500 ms allows for cloud-to-Instruqt-proxy latency while still flagging
+    // outliers. Tighten when pointing at a real, low-latency service.
+    'home: response time < 1500ms': (r) => r.timings.duration < 1500,
   });
 
   sleep(1);
@@ -80,10 +88,9 @@ export default function () {
 
   const loginRes = http.post(`${BASE_URL}/login`, payload, params);
   check(loginRes, {
-    // The demo app returns 200 for valid credentials and 401 for invalid ones.
-    // A 401 here is expected for the test credentials — adjust if the app returns 200.
+    // The demo app always returns 200 on POST /login with any body.
     'login: response received': (r) => r.status !== 0,
-    'login: response time < 500ms': (r) => r.timings.duration < 500,
+    'login: response time < 1500ms': (r) => r.timings.duration < 1500,
   });
 
   sleep(1);

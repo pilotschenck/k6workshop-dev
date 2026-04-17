@@ -84,9 +84,18 @@ Confirmed end-to-end:
 - Save lands on the check detail page — no errors
 
 Lab 13 (Scripted) and Lab 17 (Browser) use the same wizard with a different card;
-the wizard flow itself is already validated. **Lab 09 (k6 cloud run)** was not
-executed end-to-end because it needs `K6_CLOUD_TOKEN` — recommend a dry-run before
-workshop delivery.
+the wizard flow itself is already validated.
+
+### Lab 09 — `k6 cloud run` (later in the session, after a token was provided)
+
+Ran both starter and solution against Grafana Cloud k6.
+
+- **Starter (`scripts/starters/lab-09-starter.js`)** — no thresholds, completed cleanly in the cloud.
+- **Solution (`scripts/solutions/lab-09-solution.js`)** — as-originally-written, **thresholds crossed**:
+  `time="..." level=error msg="Thresholds have been crossed"`
+  Root cause: the 95th-percentile threshold `http_req_duration: ['p(95)<500']` is too tight for cloud executor → Instruqt proxy → demo-app round-trips. Cloud runs observe real WAN latency (hundreds of ms) that 500 ms cannot absorb. Same applies to the inline `check()` assertion `home: response time < 300ms`.
+
+**Fixed in a follow-up commit:** relaxed `p(95)<2000` on the global threshold and bumped the per-endpoint check() timings to 1500 ms with a comment explaining *why* the numbers look loose compared to localhost runs. This lets the cloud run pass out of the box while still flagging real outliers. Students can still demonstrate threshold failures by tightening the number locally.
 
 ## Fixes applied this session
 
