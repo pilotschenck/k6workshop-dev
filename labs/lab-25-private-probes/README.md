@@ -67,11 +67,16 @@ You need to tell Grafana Cloud that a new probe exists before starting the conta
    - **Labels:** optionally add `env=workshop` for filtering
 6. Click **Save**.
 
-After saving, Grafana Cloud displays the **SM_ACCESS_TOKEN** for this probe. This is the only time the token will be shown in full.
+After saving, Grafana Cloud displays the **Probe setup** modal with two values you'll need in the next step:
 
-**Copy the token now and keep it in your clipboard or a temporary text file.** You will paste it into the docker-compose file in the next step.
+| Variable | What it is |
+|---|---|
+| `API_TOKEN` | The credential the probe agent uses to authenticate. Shown only once. |
+| `API_SERVER` | A region-specific gRPC endpoint like `synthetic-monitoring-grpc-us-west-0.grafana.net:443`. It is **not** the generic `synthetic-monitoring-api.grafana.net` you may see in older docs — always use the value this modal shows you. |
 
-> If you miss the token, you will need to delete the probe and create a new one — the token cannot be retrieved after this screen is dismissed.
+Hit the **Copy** button next to each value to grab them cleanly.
+
+If you close the modal before copying the token, click **Reset Access Token** from the probe's edit page to generate a new one — the original is not retrievable.
 
 ### Step 3: Configure the Private Probe docker-compose
 
@@ -85,7 +90,7 @@ Open the file in your editor:
 nano infra/private-probe/docker-compose.yml
 ```
 
-Replace the entire contents with the following, substituting your actual token for `your-token-here`:
+Replace the entire contents with the following, substituting your actual token for `your-token-here` and the region-specific API server for whatever the modal showed you:
 
 ```yaml
 version: "3.8"
@@ -95,21 +100,27 @@ services:
     image: grafana/synthetic-monitoring-agent:latest
     environment:
       SM_ACCESS_TOKEN: "your-token-here"
-      SM_API_SERVER_ADDRESS: "https://synthetic-monitoring-api.grafana.net"
+      # Use the region-specific gRPC address from the Probe setup modal.
+      # Example (do NOT copy verbatim — yours may be a different region):
+      #   synthetic-monitoring-grpc-us-west-0.grafana.net:443
+      SM_API_SERVER_ADDRESS: "your-api-server-here:443"
     networks:
       - k6workshop
     restart: unless-stopped
 
 networks:
   k6workshop:
+    name: infra_k6workshop
     external: true
 ```
 
 **Why the network configuration?**
 
-The demo-app runs in a Docker network called `k6workshop` (created by the main infra docker-compose). The private probe container starts in its own isolated network by default, so it cannot resolve the hostname `demo-app` or reach `localhost:3000` as a container hostname.
+The demo-app runs in a Docker network created by the main infra docker-compose. Docker Compose names the network based on the compose project name — in our setup it's **`infra_k6workshop`** (`<project>_<network-name>`). The private probe container starts in its own isolated network by default, so it cannot resolve the hostname `demo-app` or reach `localhost:3000` as a container hostname.
 
-By joining the `k6workshop` network (`external: true` tells Compose the network already exists and should not be created), the probe container shares the same network as demo-app and can reach it by container name.
+By joining the existing `infra_k6workshop` network (referenced here via a local alias `k6workshop` for readability; `external: true` tells Compose not to create it), the probe container shares the same network as demo-app and can reach it by container name.
+
+> **Verify the network name first.** Run `docker network ls` — if you see `infra_k6workshop`, the config above is correct. If it's different (e.g. from a renamed project), update the `name:` field accordingly.
 
 Save the file after making your edits.
 

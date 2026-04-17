@@ -27,56 +27,42 @@ This architecture means a single notification policy governs alerts from synthet
 
 ## Instructions
 
-### Step 1: Find Alerting in Synthetic Monitoring
+### Step 1: Where Alerting Lives Now
 
-SM surfaces its alert configuration in two places:
+Grafana's alerting platform is split into two closely related areas:
 
-**From within SM (Legacy alerts):**
+- **`Alerts & IRM → Alerting`** in the sidebar — this is where **alert rules**, **notification configuration**, **silences**, and **history** all live. It's the same engine used by every data source (metrics, logs, SM, anything else).
+- **Per-check alerts** inside each SM check's edit form — a new, simpler UI that generates Grafana alert rules for you without needing to write PromQL. You'll use this for the common SM cases in Step 2.
 
-1. In your Grafana Cloud stack, expand **Testing & synthetics → Synthetics** in the left sidebar
-2. Click **Alerts (Legacy)** in the SM sub-navigation
+> **Deprecation note:** The old **Synthetic Monitoring → Alerts (Legacy)** page still appears in the SM sub-nav. If you open it you'll see a banner telling you legacy alerts (High/Medium/Low sensitivity) are no longer available and to use per-check alerts instead. Ignore the Legacy page for new workshop work — it exists for back-compat only.
 
-This view is scoped to SM-managed legacy alerts — it shows the pre-built rules that were generated when you first set up a check.
+### Step 2: Configure Per-Check Alerts on the Workshop Demo Check
 
-**From the main Grafana Alerting panel (recommended for new work):**
+The fastest path from "my check is running" to "I get paged when it breaks" is the per-check alerts UI.
 
-1. Expand **Alerts & IRM** in the left sidebar (or press `Ctrl+K` / `Cmd+K` and search for "Alert rules")
-2. Click **Alert rules**
+1. Navigate to **Testing & synthetics → Synthetics → Checks** and click **Workshop Demo**.
+2. Click **Edit check** in the top-right.
+3. Advance to the **Alerting** tab (step 5 of the check wizard). You'll see three opt-in alerting scenarios:
 
-This view shows alert rules across every data source. SM-generated rules appear here with the label `namespace=synthetic_monitoring` or a name prefix like `Synthetic Monitoring -`.
+| Scenario | What it covers | Default |
+|---|---|---|
+| **Failed Checks** | Probe failures in a rolling window | Alert if at least **1** of **15** probe executions fails in the last **5 min** |
+| **TLS Certificate** | Target cert expiry | Alert if the cert expires in less than **30 d** |
+| **Latency** | Per-request duration | Alert if the **average** http request duration exceeds **300 ms** over the last **5 min** |
 
-Both paths reach the same underlying Grafana Alerting engine. The unified **Alert rules** view is the path to use going forward — the Legacy tab is maintained for backwards compatibility.
+4. Tick **Failed Checks** and **Latency**. For each, fill in an optional **Runbook URL** (use `https://example.com/workshop-runbook` as a placeholder if you don't have a real one).
 
-### Step 2: Examine the Auto-Generated Alert Rules
+5. Click **Save** at the bottom right.
 
-When you create an SM check, Grafana automatically generates alert rules for it. Navigate to **Testing & synthetics → Synthetics → Alerts (Legacy)** and find the rules for your Workshop Demo check.
+Under the hood, Grafana creates real alert rules in **Alerts & IRM → Alerting → Alert rules** (look for rules prefixed with `Synthetic Monitoring -`). You didn't have to write any PromQL. These are what route through your notification policies in Step 6.
 
-SM creates two default rules per check:
+### Step 3: Inspect the Generated Alert Rules
 
-**Uptime alert**
-- Condition: uptime drops below a threshold (default is typically 75% over the evaluation window)
-- Fires when: a significant fraction of probe runs are returning failures
+1. Navigate to **Alerts & IRM → Alerting → Alert rules**.
+2. Filter by the rule name prefix or by the label `alertname=synthetic_monitoring*`.
+3. Click into the `Workshop Demo - Failed Checks` rule. You'll see the full PromQL query Grafana generated from your toggle — something like `sum by (...) (rate(probe_all_success_count{...} - probe_all_success_sum{...}))` depending on the SM agent version.
 
-**Response time alert**
-- Condition: p95 response time exceeds a threshold
-- Fires when: the service is responding slowly across probes, even if it is technically "up"
-
-Click on one of these rules to see its full definition. Notice:
-
-- **Data source:** Synthetic Monitoring (or the Grafana Cloud Metrics data source)
-- **Query:** a PromQL expression over `probe_success` or `probe_duration_seconds`
-- **Condition:** the threshold value and comparison operator
-- **Evaluation group:** how often the rule is evaluated and how long it must be true before firing
-
-### Step 3: Customize an Alert Rule
-
-You will raise the uptime threshold to a more production-appropriate level.
-
-1. In **Testing & synthetics → Synthetics → Alerts (Legacy)**, click the uptime alert rule for your Workshop Demo check
-2. Click **Edit** (pencil icon)
-3. Find the threshold condition — it is likely set to `< 0.75` (75% uptime)
-4. Change it to `< 0.99` (99% uptime)
-5. Find the **Pending period** field (the evaluation window before the alert fires) — change it to `5m`
+This is the bridge moment of the lesson: the convenience UI writes Grafana-native alert rules that live alongside every other alert rule in your stack. You can fully leave the per-check UI behind and edit the underlying rule directly if you need a condition the UI doesn't expose — which is exactly what Step 4 covers.
 
 With this setting: the alert fires only if uptime drops below 99% and stays there for at least 5 minutes. This avoids false positives from a single flaky probe run.
 
@@ -88,7 +74,7 @@ With this setting: the alert fires only if uptime drops below 99% and stays ther
 
 Sometimes the auto-generated rules do not cover the exact condition you care about. Here is how to create a rule manually.
 
-1. Navigate to **Alerting > Alert Rules > New alert rule**
+1. Navigate to **Alerts & IRM → Alerting → Alert rules** and click **+ New alert rule** at the top right
 2. Give it a name: `Workshop Demo — high error rate`
 3. In the **Query** section, select **Synthetic Monitoring** (or your Grafana Cloud data source) as the data source
 4. Enter this PromQL expression:
@@ -116,8 +102,9 @@ Labels are how Grafana Alerting routes notifications — the notification policy
 
 A contact point defines where notifications go. You will set up an email contact point.
 
-1. Navigate to **Alerting > Contact Points > Add contact point**
-2. Name: `Workshop Email`
+1. Navigate to **Alerts & IRM → Alerting → Notification configuration**. You land on a four-tab page: **Contact points / Notification policies / Templates / Time intervals**.
+2. On the **Contact points** tab (default), click **+ New contact point** at the top right.
+3. Name: `Workshop Email`
 3. Integration type: **Email**
 4. Addresses: enter your email address
 5. Expand **Optional email settings** — you can customize the subject and message body using Go template syntax, but the defaults are fine for now
@@ -130,7 +117,7 @@ A contact point defines where notifications go. You will set up an email contact
 
 Notification policies route alerts to contact points based on label matchers. Think of it as routing rules: "if an alert has these labels, send it to this contact point."
 
-1. Navigate to **Alerting > Notification policies**
+1. On the same **Notification configuration** page, switch to the **Notification policies** tab.
 2. You will see the **Default policy** at the top — this is the catch-all that receives any alert not matched by a more specific rule
 3. Click **Add nested policy** under the default
 4. Set the matcher: `severity = warning`
@@ -139,22 +126,23 @@ Notification policies route alerts to contact points based on label matchers. Th
 
 Now any alert rule with the label `severity=warning` (including the rule you created in Step 4) will route to your email address.
 
-### Step 7: Mute Timings for Maintenance Windows
+### Step 7: Time Intervals for Maintenance Windows
 
-A **mute timing** suppresses notifications during a scheduled time period — for example, during a weekly maintenance window or a scheduled deployment. Alerts still fire and appear in Grafana; notifications are simply not sent.
+A **time interval** (the feature used to be called "mute timing") suppresses notifications during a scheduled time period — for example, during a weekly maintenance window or a scheduled deployment. Alerts still fire and appear in Grafana; notifications are simply not sent.
 
-To create a mute timing:
+To create one:
 
-1. Navigate to **Alerting > Mute timings > Add mute timing**
-2. Name: `Weekly maintenance`
-3. Time interval:
+1. On the **Notification configuration** page, switch to the **Time intervals** tab.
+2. Click **+ New time interval**.
+3. Name: `Weekly maintenance`
+4. Time interval:
    - Days of the week: Sunday
    - Time range: 02:00–04:00
-4. Click **Submit**
+5. Click **Submit**
 
 Then apply it to your notification policy:
 
-1. Go back to **Alerting > Notification policies**
+1. Switch to the **Notification policies** tab
 2. Click **Edit** on your `severity=warning` policy
 3. Under **Mute timings**, select **Weekly maintenance**
 4. Save
@@ -184,15 +172,15 @@ To restore normal operation:
 
 After completing all steps:
 
-- The Checks list shows your Workshop Demo check with a customized uptime alert rule at the 99% threshold
+- The Workshop Demo check has per-check alerts enabled for Failed Checks + Latency; corresponding rules appear in Alerts & IRM → Alerting → Alert rules
 - Your inbox received a test notification from Step 5 confirming the contact point is configured correctly
 - The Notification Policies page shows a `severity=warning` route pointing to Workshop Email
 - The alert rule entered **Pending** state during the test-alert step and transitioned to **Firing** after 5 minutes
 
 ## Key Takeaways
 
-- SM auto-generates uptime and response-time alert rules for every check; you can customize thresholds and evaluation windows without starting from scratch
+- SM's **per-check alerts** UI lets you enable Failed Checks / TLS / Latency alerts with a single checkbox — Grafana writes the underlying alert rules for you, and they live alongside every other alert in Alerts & IRM → Alert rules
 - Custom alert rules use PromQL over SM metrics like `probe_success` and `probe_duration_seconds` — the same query language you use for infrastructure and application metrics
 - Labels on alert rules drive notification routing; the notification policy matches on labels, not on alert names, making the routing system composable and reusable
-- Mute timings suppress notifications during planned maintenance without disabling the alert rules themselves
+- Time intervals (formerly "mute timings") suppress notifications during planned maintenance without disabling the alert rules themselves
 - Grafana Alerting is one engine for all data sources — the contact points and notification policies you configure here also handle infrastructure, log, and trace alerts

@@ -8,8 +8,22 @@ services:
   private-probe:
     image: grafana/synthetic-monitoring-agent:latest
     environment:
-      # Token obtained from Grafana Cloud Synthetic Monitoring plugin when registering a private probe.
+      # Token obtained from Grafana Cloud Synthetic Monitoring plugin when registering
+      # a private probe. The Probe setup modal is the only place it's shown — use the
+      # Copy button in the modal (do not eyeball the value, some chars are ambiguous).
       SM_ACCESS_TOKEN: "<your-sm-access-token>"
-      # API server address for your Grafana Cloud stack's Synthetic Monitoring service.
-      SM_API_SERVER_ADDRESS: "https://synthetic-monitoring-api.grafana.net"
+      # REGION-SPECIFIC gRPC endpoint — also shown in the Probe setup modal as API_SERVER.
+      # Example: synthetic-monitoring-grpc-us-west-0.grafana.net:443
+      # Do NOT use the old generic URL (https://synthetic-monitoring-api.grafana.net) —
+      # the agent will auth-fail in silent/confusing ways.
+      SM_API_SERVER_ADDRESS: "<region-specific-grpc-endpoint>:443"
+    networks:
+      - k6workshop
     restart: unless-stopped
+
+# The probe must share a Docker network with demo-app so it can reach it by hostname.
+# The main infra compose project creates `infra_k6workshop`; we attach to it as external.
+networks:
+  k6workshop:
+    name: infra_k6workshop
+    external: true

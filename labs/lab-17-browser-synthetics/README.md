@@ -125,20 +125,22 @@ If you see a `timeout` error waiting for `nav`, increase the `waitForSelector` t
 
 1. Open your Grafana Cloud instance and navigate to **Testing & synthetics → Synthetics → Checks** in the left sidebar.
 2. Click **+ Create new check**.
-3. On the check-type picker, click the **Browser** card.
-4. Fill in the check configuration:
+3. On the check-type picker, click the **Browser** card. The form opens on a 5-step wizard: **Script → Uptime → Labels → Execution → Alerting**.
+4. On the **Script** step, fill in:
 
 | Field | Value |
 |---|---|
 | **Job name** | `Grafana Homepage Browser Check` |
-| **Script** | Paste the full content of `scripts/solutions/lab-17-solution.js` |
-| **Probe locations** | Select 2–3 locations (e.g., US East, EU West, Singapore) |
-| **Frequency** | 10 minutes |
-| **Timeout** | 30 seconds |
+| **Instance** | `https://grafana.com` (the URL your script navigates to — follows the Prometheus `job`/`instance` convention for metric labels) |
+| **Script** | Select-all + delete the pre-populated k6-testing template, then paste the full content of `scripts/solutions/lab-17-solution.js` |
+
+> **Heads-up:** the script editor pre-populates with a k6-testing template that imports `expect` from `k6-testing/0.5.0` and `check` from `k6-utils/1.5.0`. Our solution uses the plain `check` from `k6` — either style works, but don't mix them in the same script.
+
+5. Advance through **Uptime** (defaults are fine) and **Labels** (skip). On **Execution**, select 2–3 probe locations (e.g., Ohio, Frankfurt, Singapore) and click the **10m** frequency pill. Browser checks are expensive — 10 minutes is the sensible workshop default.
+
+6. Skip **Alerting** for now (covered in Lab 22) and click **Save** at the bottom right.
 
 > **Why 10 minutes?** Browser checks launch a full Chromium instance, render the page, and execute JavaScript — they are significantly heavier than HTTP checks. Running them every 1–2 minutes as you would an HTTP check burns through your SM quota quickly. 10 minutes is a sensible default for non-critical pages; critical checkout flows might run every 5 minutes.
-
-5. Click **Save** to create the check.
 
 ### Step 4: Run an Immediate Test
 
