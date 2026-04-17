@@ -55,6 +55,8 @@ You will see an empty list. You are about to create your first SLO.
 
 Click **+ Create SLO** (or **+ New SLO** on the empty state). You land on a 5-step wizard; advance through it with the blue button at the bottom-right of each step.
 
+> ⚠️ **Only move forward in this wizard.** The Monaco query editors on the Define SLI step silently lose their contents if you leave the step and come back via the left-rail step markers or "Edit section" from the Review page. The same click also clears the alert-rule checkbox on step 4. This is an upstream Grafana SLO plugin quirk, not a workshop bug. If you misclick or need to back up, re-enter the PromQL queries and run them again before advancing — do not rely on them still being there.
+
 #### Step 1 of wizard — Define SLI
 
 SLOs in Grafana are built from **counter metrics**, not SM check names. Under the hood SM exports `probe_all_success_sum` and `probe_all_success_count` per probe run — we use those directly.
