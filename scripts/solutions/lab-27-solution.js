@@ -46,13 +46,19 @@ export default function () {
     const res = http.get('http://localhost:3000/health', params);
 
     // Translated from config.assertions:
-    //   { type: statusCode,    operator: is,          target: 200  }
-    //   { type: responseTime,  operator: lessThan,    target: 2000 }
-    //   { type: body,          operator: contains,    target: '"status":"ok"' }
+    //   { type: statusCode,    operator: is,          target: 200        }
+    //   { type: responseTime,  operator: lessThan,    target: 2000       }
+    //   { type: body,          operator: contains,    target: '"status"' }
+    //
+    // Note: the mock DD test originally asserted `"status":"ok"`. This
+    // workshop's demo-app returns `{"status":"healthy"}`, so we assert on
+    // the substring `healthy` instead. The translation pattern is the
+    // same — only the expected string changes when you re-point at a
+    // real service.
     check(res, {
-      'status 200':        (r) => r.status === 200,
-      'fast response':     (r) => r.timings.duration < 2000,
-      'status ok in body': (r) => r.body.includes('healthy'),
+      'status 200':              (r) => r.status === 200,
+      'fast response':           (r) => r.timings.duration < 2000,
+      'status healthy in body':  (r) => r.body.includes('healthy'),
     });
   });
 

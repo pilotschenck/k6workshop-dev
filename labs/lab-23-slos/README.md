@@ -41,12 +41,14 @@ How fast you are consuming your error budget relative to the baseline pace. A bu
 
 ## Instructions
 
-### Step 1: Navigate to SLOs in Synthetic Monitoring
+### Step 1: Navigate to the SLO Plugin
 
-1. In your Grafana Cloud stack, navigate to **Synthetic Monitoring** in the left sidebar
-2. Click **SLOs** in the SM sub-navigation
+SLOs live in a dedicated plugin, not under Synthetic Monitoring directly. In your Grafana Cloud stack:
 
-If the SLO section is not visible, it may be accessible via the main Grafana navigation under **SLO** (a separate plugin). Both surfaces manage the same SLO data.
+1. Open the sidebar and search (`Ctrl+K` / `Cmd+K`) for **SLO**, or click **More apps** → **SLO** if it is pinned there
+2. Alternatively, navigate directly to `/a/grafana-slo-app/` on your stack URL
+
+The SLO plugin is where you manage all service level objectives, regardless of whether the underlying SLI comes from Synthetic Monitoring, application metrics, or logs.
 
 You will see an empty list. You are about to create your first SLO.
 
@@ -175,7 +177,7 @@ Post this policy in your team's Slack channel or engineering wiki. When the SLO 
 
 Optionally trigger a real budget burn to see the dashboard update.
 
-1. In **Synthetic Monitoring > Checks**, click on **Workshop Demo** and click **Edit**
+1. In **Testing & synthetics → Synthetics → Checks**, click on **Workshop Demo** and click **Edit**
 2. Change the URL to `https://grafana.com/thispagedoesnotexist` (returns 404, fails the assertion)
 3. Save — the check starts failing on every probe run
 4. Wait 3–5 minutes, then return to the SLO dashboard

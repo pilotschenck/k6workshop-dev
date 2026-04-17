@@ -1,6 +1,6 @@
 # Lab 14: k6 Browser - Intro and Page Navigation
 
-**Time:** 15 min | **Module:** Module 4 - Browser Testing
+**Time:** 15 min | **Module:** Module 3 — Browser Testing
 
 ## Overview
 
@@ -48,7 +48,7 @@ Browser tests use the `chromium` executor in a named scenario. The default funct
 Open the starter script:
 
 ```bash
-cat /home/aschenck/lab/k6workshop-dev/scripts/starters/lab-14-starter.js
+cat scripts/starters/lab-14-starter.js
 ```
 
 The scenario block looks like this:
@@ -100,7 +100,8 @@ await page.screenshot({ path: 'screenshots/lab-14.png' });
 Run the script and verify the file was created:
 
 ```bash
-k6 run /home/aschenck/lab/k6workshop-dev/scripts/starters/lab-14-starter.js
+mkdir -p screenshots
+k6 run scripts/starters/lab-14-starter.js
 ls -lh screenshots/lab-14.png
 ```
 
@@ -130,7 +131,7 @@ check(title, {
 ### Step 6: Run the Full Solution
 
 ```bash
-k6 run /home/aschenck/lab/k6workshop-dev/scripts/solutions/lab-14-solution.js
+k6 run scripts/solutions/lab-14-solution.js
 ```
 
 Watch the terminal output. You will see browser-specific metrics alongside the standard k6 metrics.

@@ -160,8 +160,8 @@ export default function () {
 
 ### Step 6: Upload to SM
 
-1. Open Grafana → **Synthetic Monitoring > Checks**
-2. Click **Add Check** → select **Scripted**
+1. Open Grafana → **Testing & synthetics → Synthetics → Checks**
+2. Click **+ Create new check** → click the **Scripted** card
 3. Paste or upload the adapted script
 4. Configure:
    - **Job name:** `Checkout Flow`
@@ -186,7 +186,7 @@ If you completed Lab 25 and have a private probe registered:
 
 Alongside the scripted check, create a simple HTTP availability monitor:
 
-1. **Add Check** → select **HTTP**
+1. **+ Create new check** → **API Endpoint** card (HTTP is the default request type)
 2. Target: `http://localhost:3000/health`
 3. Job name: `Checkout Service Health`
 4. Frequency: 1 minute (faster than the scripted check — cheap to run)
@@ -203,7 +203,7 @@ You now have two complementary checks: a deep scripted check that validates the 
 
 Your checkout flow is now generating synthetic monitoring data. Turn that into an SLO:
 
-1. Open Grafana → **Synthetic Monitoring > SLOs** (or **Alerting > SLOs** depending on your Grafana version)
+1. Open Grafana → the **SLO** plugin (sidebar search for "SLO", or navigate directly to `/a/grafana-slo-app/`)
 2. Click **Create SLO**
 3. Configure:
    - **Name:** `Checkout Flow SLO`

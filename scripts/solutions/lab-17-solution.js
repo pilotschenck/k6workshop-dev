@@ -10,7 +10,7 @@
 // Run locally:
 //   K6_BROWSER_HEADLESS=true k6 run scripts/solutions/lab-17-solution.js
 //
-// In SM: Add Check > Browser > paste this script content
+// In SM: Testing & synthetics > Synthetics > Checks > + Create new check > Browser > paste this script content
 
 import { browser } from 'k6/browser';
 import { check } from 'k6';

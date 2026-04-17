@@ -1,6 +1,6 @@
 # Lab 15: Browser Interactions - Forms, Clicks, and Waits
 
-**Time:** 20 min | **Module:** Module 4 - Browser Testing
+**Time:** 20 min | **Module:** Module 3 — Browser Testing
 
 ## Overview
 
@@ -32,7 +32,7 @@ curl http://localhost:8080/forms/post
 Open the starter script:
 
 ```bash
-cat /home/aschenck/lab/k6workshop-dev/scripts/starters/lab-15-starter.js
+cat scripts/starters/lab-15-starter.js
 ```
 
 The starter already has the scenario configuration and `page.goto()` call. Your job is to fill in the TODO sections.
@@ -155,7 +155,7 @@ The `finally` block ensures the page is always closed, even when `catch` runs.
 ### Step 9: Run the Full Solution
 
 ```bash
-k6 run /home/aschenck/lab/k6workshop-dev/scripts/solutions/lab-15-solution.js
+k6 run scripts/solutions/lab-15-solution.js
 ```
 
 ## Expected Output

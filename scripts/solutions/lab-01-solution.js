@@ -44,7 +44,7 @@ export default function () {
   };
   const loginRes = http.post(`${BASE_URL}/login`, loginPayload, loginParams);
   check(loginRes, {
-    'login status is 200 or 401': (r) => r.status === 200 || r.status === 401,
+    'login status is 200': (r) => r.status === 200,
     'login response time < 1s': (r) => r.timings.duration < 1000,
   });
 

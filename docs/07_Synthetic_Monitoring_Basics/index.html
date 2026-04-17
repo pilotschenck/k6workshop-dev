@@ -88,17 +88,18 @@ With DataDog, you switch between Synthetics portal and APM dashboards. With Graf
 <textarea data-template>
 ## Lab 10: SM Introduction
 
-Navigate to Synthetic Monitoring in your Grafana Cloud stack.
+In your Grafana Cloud stack, expand **Testing & synthetics → Synthetics** in the sidebar.
 
-Key areas:
+SM sub-nav:
 - **Checks** — main list of all your monitors
-- **Summary** — dashboard aggregating all checks
-- **Probes** — global probe locations
-- **Alerts** — pre-built alerting rules
+- **Probes** — global probe locations (AMER / APAC / EMEA)
+- **Alerts (Legacy)** — pre-built alerting rules; new work lives under **Alerts & IRM**
 - **Config** — plugin settings
 
+The fleet-level view lives on the **Synthetics** landing page itself.
+
 <aside class="notes">
-The Checks list is your operational view. The Summary dashboard is for wall screens and incident response.
+The Checks list is your operational view. The landing page plus check-detail dashboards replaced the old Summary tab. Alerts (Legacy) is retained for backwards compatibility; new alert rules should use the unified Alerts & IRM section.
 </aside>
 </textarea>
 </section>
@@ -107,19 +108,26 @@ The Checks list is your operational view. The Summary dashboard is for wall scre
 <textarea data-template>
 ## Creating Your First HTTP Check
 
+**Checks → + Create new check → API Endpoint**
+
+5-step wizard: **Request → Uptime → Labels → Execution → Alerting**
+
 ```yaml
-Job name: Workshop Demo
-URL: https://grafana.com
-Probe locations: US East, EU West, AP Singapore
-Frequency: 1 minute
-Timeout: 10 seconds
-Assertion: HTTP status code equals 200
+Request
+  Job name:      Workshop Demo
+  Request type:  HTTP (radio; row also has Ping/DNS/TCP/Traceroute)
+  Request target: https://grafana.com
+Uptime
+  Valid status codes: 2xx (default)
+Execution
+  Probe locations: North Virginia US, Frankfurt DE, Singapore SG
+  Frequency:       1m pill
 ```
 
-Use the **Test** button for immediate execution without waiting.
+Use the right-hand **Test** panel for immediate execution without waiting.
 
 <aside class="notes">
-The Test button is invaluable during setup — instant feedback without polluting uptime history.
+The Test button is invaluable during setup — instant feedback without polluting uptime history. The old single-form check-creation screen has been replaced by a 5-step wizard.
 </aside>
 </textarea>
 </section>
@@ -144,23 +152,28 @@ This view directly mirrors what users in those regions experience. If AP users c
 
 <section data-markdown>
 <textarea data-template>
-## Lab 11: HTTP Assertions
+## Lab 11: HTTP Validation
 
 Beyond status code 200, add:
-- **Body Contains** — verify response has expected content
-- **Response Time** — catch slowdowns before users notice
-- **TLS Validation** — detect certificate expiry
+- **Regexp validation** — assert body or header content with a regex (replaces old "Body Contains" / "Body Matches Regex" assertions)
+- **Valid status codes** range — 2xx by default
+- **TLS Validation** — detect certificate expiry (on by default)
 
-```javascript
-Assertions:
-  Status Code equals 200
-  Body Contains "slideshow"
-  Response Time < 2000 ms
-TLS: Verify SSL certificate enabled
+```yaml
+Uptime step
+  Valid status codes: 2xx
+  Regexp validation:
+    Source:          Body
+    Match condition: slideshow
+    Invert:          ✓  (fail unless body matches)
+Request → Request options → TLS
+  Disable target certificate validation: unchecked (TLS validation on)
 ```
 
+> Response-time pass/fail is gone — latency is a global threshold now, not a per-check assertion.
+
 <aside class="notes">
-Certificate expiry is one of the most common causes of unexpected outages. Synthetic Monitoring with TLS validation catches this weeks before expiry.
+Certificate expiry is one of the most common causes of unexpected outages. Synthetic Monitoring with TLS validation catches this weeks before expiry. The old typed assertions (Body Contains, Body Matches Regex, Header Contains) are unified into a single Regexp validation model — default semantics is "fail when regex matches", so "must contain" checks need the Invert box.
 </aside>
 </textarea>
 </section>
@@ -356,7 +369,7 @@ A script that fails locally will fail in Synthetic Monitoring too. Local termina
 <textarea data-template>
 ## Uploading to SM
 
-1. SM → Add Check → **Scripted**
+1. Testing & synthetics → Synthetics → Checks → **+ Create new check** → **Scripted**
 2. Paste full script content
 3. Configure:
    - Job name

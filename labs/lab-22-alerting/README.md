@@ -31,25 +31,25 @@ This architecture means a single notification policy governs alerts from synthet
 
 SM surfaces its alert configuration in two places:
 
-**From within SM:**
+**From within SM (Legacy alerts):**
 
-1. In your Grafana Cloud stack, navigate to **Synthetic Monitoring** in the left sidebar
-2. Click **Alerts** in the SM sub-navigation
+1. In your Grafana Cloud stack, expand **Testing & synthetics → Synthetics** in the left sidebar
+2. Click **Alerts (Legacy)** in the SM sub-navigation
 
-This view is scoped to SM — it shows only alert rules that reference SM metrics.
+This view is scoped to SM-managed legacy alerts — it shows the pre-built rules that were generated when you first set up a check.
 
-**From the main Grafana Alerting panel:**
+**From the main Grafana Alerting panel (recommended for new work):**
 
-1. Click the bell icon in the left sidebar (or navigate to **Alerting** in the main nav)
-2. Click **Alert Rules**
+1. Expand **Alerts & IRM** in the left sidebar (or press `Ctrl+K` / `Cmd+K` and search for "Alert rules")
+2. Click **Alert rules**
 
-This view shows all alert rules across every data source. SM-generated rules appear here with the label `namespace=synthetic_monitoring` or a name prefix like `Synthetic Monitoring -`.
+This view shows alert rules across every data source. SM-generated rules appear here with the label `namespace=synthetic_monitoring` or a name prefix like `Synthetic Monitoring -`.
 
-Both paths reach the same underlying Grafana Alerting engine. Use whichever is more convenient.
+Both paths reach the same underlying Grafana Alerting engine. The unified **Alert rules** view is the path to use going forward — the Legacy tab is maintained for backwards compatibility.
 
 ### Step 2: Examine the Auto-Generated Alert Rules
 
-When you create an SM check, Grafana automatically generates alert rules for it. Navigate to **Synthetic Monitoring > Alerts** and find the rules for your Workshop Demo check.
+When you create an SM check, Grafana automatically generates alert rules for it. Navigate to **Testing & synthetics → Synthetics → Alerts (Legacy)** and find the rules for your Workshop Demo check.
 
 SM creates two default rules per check:
 
@@ -72,7 +72,7 @@ Click on one of these rules to see its full definition. Notice:
 
 You will raise the uptime threshold to a more production-appropriate level.
 
-1. In **Synthetic Monitoring > Alerts**, click the uptime alert rule for your Workshop Demo check
+1. In **Testing & synthetics → Synthetics → Alerts (Legacy)**, click the uptime alert rule for your Workshop Demo check
 2. Click **Edit** (pencil icon)
 3. Find the threshold condition — it is likely set to `< 0.75` (75% uptime)
 4. Change it to `< 0.99` (99% uptime)
@@ -165,7 +165,7 @@ During Sunday 02:00–04:00, your check can fail without sending any email. The 
 
 Temporarily break your check to verify the full alert pipeline works end-to-end.
 
-1. In **Synthetic Monitoring > Checks**, click on the **Workshop Demo** check
+1. In **Testing & synthetics → Synthetics → Checks**, click on the **Workshop Demo** check
 2. Click **Edit**
 3. Change the URL from `https://grafana.com` to `https://grafana.com/thispagedoesnotexist`
 4. Save the check

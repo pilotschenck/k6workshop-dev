@@ -158,8 +158,8 @@ All three checks should pass. The solution script also includes a login assertio
 
 The script you just wrote is exactly what you upload to Grafana Synthetic Monitoring.
 
-1. Open Grafana at `http://localhost:3030` and navigate to **Synthetic Monitoring > Checks**
-2. Click **Add Check**, select **Scripted**
+1. Open your Grafana Cloud stack and navigate to **Testing & synthetics → Synthetics → Checks**
+2. Click **+ Create new check**, then click the **Scripted** card
 3. Paste the script (or upload the file)
 4. Set:
    - **Job name:** `API Health Check`

@@ -62,7 +62,7 @@ Run these curl commands to confirm each service responds:
 ```bash
 curl -s http://localhost:3000/health
 ```
-Expected: `{"status":"ok"}`
+Expected: `{"status":"healthy"}`
 
 **broken-app** (port 3001):
 ```bash

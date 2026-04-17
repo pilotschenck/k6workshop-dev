@@ -12,10 +12,11 @@
  * Run:  k6 run scripts/starters/lab-29-starter.js
  */
 
-// TODO: import http from 'k6/http'
-// TODO: import { check, group, sleep } from 'k6'
-// TODO: import { Counter, Rate } from 'k6/metrics'
-// TODO: import { SharedArray } from 'k6/data'
+// Imports — k6's standard modules. Leave these alone.
+import http from 'k6/http';
+import { check, group, sleep } from 'k6';
+import { Counter, Rate } from 'k6/metrics';
+import { SharedArray } from 'k6/data';
 
 // ── Custom business metrics ──────────────────────────────────────────────────
 // TODO: declare a Counter named 'orders_placed'
@@ -27,10 +28,13 @@
 
 // ── Options ───────────────────────────────────────────────────────────────────
 export const options = {
+  // Minimal starter profile so the file is runnable as-is.
+  // TODO: replace with the 3-stage ramp described in the lab:
+  //   - ramp up to 5 VUs over 30 seconds
+  //   - hold 5 VUs for 2 minutes
+  //   - ramp down to 0 VUs over 30 seconds
   stages: [
-    // TODO: ramp up to 5 VUs over 30 seconds
-    // TODO: hold 5 VUs for 2 minutes
-    // TODO: ramp down to 0 VUs over 30 seconds
+    { duration: '10s', target: 1 },
   ],
   thresholds: {
     // TODO: p95 response time for the browse group < 500ms

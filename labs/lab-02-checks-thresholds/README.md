@@ -9,7 +9,7 @@ Add `check()` calls to validate response correctness, then define `thresholds` s
 - How to use `check()` to assert status codes, response times, and body content
 - How to set pass/fail thresholds on built-in and custom metrics
 - What threshold failures look like in the terminal output and exit code
-- How to use the `BROKEN_URL` environment variable to switch targets without editing the script
+- How to use the `BASE_URL` environment variable to switch targets without editing the script
 
 ## Prerequisites
 - Lab 01 completed — comfortable running k6 scripts and reading the summary output

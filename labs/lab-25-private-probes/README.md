@@ -58,7 +58,7 @@ Key properties of this model:
 You need to tell Grafana Cloud that a new probe exists before starting the container. This step generates the access token the probe uses to authenticate.
 
 1. Log in to your Grafana Cloud account at https://grafana.com.
-2. Navigate to your stack, then go to **Synthetic Monitoring** in the left nav (or via the main menu > Observability > Synthetics).
+2. Navigate to your stack, then expand **Testing & synthetics → Synthetics** in the left nav (or press `Ctrl+K` / `Cmd+K` and search for "Synthetics").
 3. Click **Probes** in the SM navigation.
 4. Click **Add Private Probe**.
 5. Fill in the probe details:
@@ -150,7 +150,7 @@ If you see connection errors or authentication failures, double-check that:
 
 Return to your Grafana Cloud account:
 
-1. Navigate to Synthetic Monitoring > Probes.
+1. Navigate to **Testing & synthetics → Synthetics → Probes**.
 2. You should see `workshop-local` in the probe list with a status of **Online**.
 
 If the probe shows as **Offline** after 30 seconds, re-check the logs from Step 4. A common cause is a typo in the token.
@@ -161,8 +161,8 @@ The probe is now registered and ready to execute checks. It will poll SM every f
 
 Now create an HTTP check that runs exclusively on your private probe:
 
-1. In Synthetic Monitoring, click **Add Check**.
-2. Select check type: **HTTP**.
+1. Navigate to **Testing & synthetics → Synthetics → Checks** and click **+ Create new check**.
+2. On the check-type picker, click the **API Endpoint** card. The Request type radio group defaults to **HTTP**.
 3. Fill in the check settings:
    - **Job name:** `demo-app-internal`
    - **URL:** `http://demo-app:3000/`
@@ -184,7 +184,7 @@ The check is now active. The private probe will pick up the check definition wit
 
 ### Step 7: View Check Results
 
-Navigate to Synthetic Monitoring > Checks. Click on `demo-app-internal` to open the check detail view.
+Navigate to **Testing & synthetics → Synthetics → Checks**. Click on `demo-app-internal` to open the check detail view.
 
 Within 1-2 minutes you should see:
 - **Uptime:** 100%
@@ -204,7 +204,7 @@ Stop the demo-app container:
 docker compose -f infra/docker-compose.yml stop demo-app
 ```
 
-Wait 1-2 minutes (the probe runs checks on the configured 1-minute frequency). Then return to Synthetic Monitoring > Checks and observe:
+Wait 1-2 minutes (the probe runs checks on the configured 1-minute frequency). Then return to **Testing & synthetics → Synthetics → Checks** and observe:
 
 - The `demo-app-internal` check status changes to **Down** (shown in red)
 - The uptime percentage drops

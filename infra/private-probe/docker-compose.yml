@@ -1,6 +1,6 @@
 # Reference configuration for running a Grafana private synthetic monitoring probe locally.
 # Used in Lab 25. Requires a real Grafana Cloud account with Synthetic Monitoring enabled.
-# Obtain SM_ACCESS_TOKEN from: Grafana Cloud > Synthetic Monitoring > Probes > Add Private Probe
+# Obtain SM_ACCESS_TOKEN from: Grafana Cloud > Testing & synthetics > Synthetics > Probes > Add Private Probe
 
 version: "3.8"
 

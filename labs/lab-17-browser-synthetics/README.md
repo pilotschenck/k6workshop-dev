@@ -123,9 +123,9 @@ If you see a `timeout` error waiting for `nav`, increase the `waitForSelector` t
 
 ### Step 3: Upload the Script to SM
 
-1. Open your Grafana Cloud instance and navigate to **Synthetic Monitoring** in the left sidebar.
-2. Click **Add Check**.
-3. Select **Browser** as the check type.
+1. Open your Grafana Cloud instance and navigate to **Testing & synthetics → Synthetics → Checks** in the left sidebar.
+2. Click **+ Create new check**.
+3. On the check-type picker, click the **Browser** card.
 4. Fill in the check configuration:
 
 | Field | Value |

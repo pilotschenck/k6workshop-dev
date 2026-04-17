@@ -2,6 +2,8 @@
 
 **Time:** 25 min | **Module:** Module 3 — Advanced
 
+> **Environment note:** k6 Studio is a **desktop GUI application**, not a CLI tool. The Instruqt workshop sandbox does not expose a desktop display, so **this lab is best completed on your own laptop** (macOS, Windows, or Linux with a display). If you are working through the workshop exclusively in Instruqt, read through the lab to understand the k6 Studio recorder flow — you can reproduce the same outcome later on your local workstation. Everything else in the workshop remains runnable inside Instruqt.
+
 ## Overview
 
 k6 Studio is a desktop application that lets you record real browser sessions and automatically generate k6 test scripts. It solves the blank-page problem: instead of writing a script from scratch, you browse your application normally and k6 Studio converts your actions into a runnable k6 test.

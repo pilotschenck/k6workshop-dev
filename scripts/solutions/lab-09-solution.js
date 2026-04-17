@@ -16,7 +16,14 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-const BASE_URL = `https://grafana-workstation-3000u-${__ENV.INSTRUQT_PARTICIPANT_ID}.env.play.instruqt.com`;
+// When running inside the Instruqt workstation, INSTRUQT_PARTICIPANT_ID is set
+// automatically and the script reaches demo-app via the public proxy URL.
+// Outside Instruqt (e.g. your own laptop), fall back to localhost so the
+// script still runs against a local demo-app. Override explicitly with:
+//   BASE_URL=http://localhost:3000 k6 run scripts/solutions/lab-09-solution.js
+const BASE_URL = __ENV.BASE_URL || (__ENV.INSTRUQT_PARTICIPANT_ID
+  ? `https://grafana-workstation-3000u-${__ENV.INSTRUQT_PARTICIPANT_ID}.env.play.instruqt.com`
+  : 'http://localhost:3000');
 
 export const options = {
   // Staged load: ramp from 0 → 5 VUs, hold, then ramp back down.

@@ -110,9 +110,9 @@ If `https://httpbin.org` is unreachable from your workstation, try running `curl
 
 ### Step 3: Upload the Script to Synthetic Monitoring
 
-In your Grafana Cloud instance, navigate to **Synthetic Monitoring** in the left sidebar.
+In your Grafana Cloud instance, navigate to **Testing & synthetics → Synthetics → Checks** in the left sidebar.
 
-Click **Add Check** and select **Scripted** from the check type menu.
+Click **+ Create new check**. On the check-type picker, click the **Scripted** card.
 
 Fill in the configuration:
 
