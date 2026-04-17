@@ -313,6 +313,14 @@ Sean's local working tree usually has some in-progress changes to
 diff on scripts. **Stage specific files by name** — never `git add .`
 — to avoid sweeping his WIP into a QA commit.
 
+### Git pager hangs the terminal
+
+`git log`, `git diff`, and `git show` pipe through `less` by default on
+the Instruqt workstation, and xterm-via-paste has no clean way to
+dismiss the pager. Prefix with `GIT_PAGER=cat` or use `git --no-pager
+log` / `git log --no-pager -n 5` so output dumps straight to the
+terminal.
+
 ### Don't burn cloud runs unnecessarily
 
 `k6 cloud run` costs VUh against the workshop stack. Run both the

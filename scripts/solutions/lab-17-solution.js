@@ -46,9 +46,11 @@ export default async function () {
 
   try {
     // Navigate to the Grafana homepage.
-    // waitUntil: 'networkidle' waits until there are no more than 0 in-flight
-    // network connections for 500ms — a good signal that the page is fully loaded.
-    await page.goto('https://grafana.com', { waitUntil: 'networkidle' });
+    // waitUntil: 'load' waits for the window load event — good enough for a synthetic
+    // check and fast enough to fit within SM's 30s probe timeout. Do NOT use
+    // 'networkidle' here: grafana.com emits continuous telemetry/analytics pings, so
+    // the network never goes idle and the navigation will time out at 30s every time.
+    await page.goto('https://grafana.com', { waitUntil: 'load', timeout: 25000 });
 
     // --- Check 1: Page title contains "Grafana" ---
     // This is the most basic sanity check — confirms we reached the right page
