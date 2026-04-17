@@ -43,42 +43,65 @@ How fast you are consuming your error budget relative to the baseline pace. A bu
 
 ### Step 1: Navigate to the SLO Plugin
 
-SLOs live in a dedicated plugin, not under Synthetic Monitoring directly. In your Grafana Cloud stack:
+SLOs live in a dedicated plugin, not under Synthetic Monitoring. In the left sidebar, expand **Alerts & IRM** — you'll see **SLO** as one of the sub-items (alongside Alerting, IRM, Label management). Click it.
 
-1. Open the sidebar and search (`Ctrl+K` / `Cmd+K`) for **SLO**, or click **More apps** → **SLO** if it is pinned there
-2. Alternatively, navigate directly to `/a/grafana-slo-app/` on your stack URL
+> **Direct URL:** `/a/grafana-slo-app/` on your stack if the sidebar isn't pinned.
 
-The SLO plugin is where you manage all service level objectives, regardless of whether the underlying SLI comes from Synthetic Monitoring, application metrics, or logs.
+The SLO plugin is where you manage all service level objectives, regardless of whether the underlying SLI comes from Synthetic Monitoring, application metrics, or logs. The landing page has an **Insights** tab (empty until you create your first SLO) and a **Get started** tab.
 
 You will see an empty list. You are about to create your first SLO.
 
 ### Step 2: Create a New SLO
 
-Click **Create SLO** (or **Add SLO**) and fill in the form:
+Click **+ Create SLO** (or **+ New SLO** on the empty state). You land on a 5-step wizard; advance through it with the blue button at the bottom-right of each step.
 
-**Basic information**
+#### Step 1 of wizard — Define SLI
 
-| Field | Value |
-|-------|-------|
-| Name | `Workshop Demo SLO` |
-| Description | `Uptime SLO for the Workshop Demo HTTP check` |
-
-**SLI definition**
-
-- SLI type: **Success rate** (ratio of successful checks to total checks)
-- Check: select **Workshop Demo** (the HTTP check from Lab 10)
-- Grafana populates the underlying metric automatically — it uses `probe_success` from your SM data
-
-**Objective**
+SLOs in Grafana are built from **counter metrics**, not SM check names. Under the hood SM exports `probe_all_success_sum` and `probe_all_success_count` per probe run — we use those directly.
 
 | Field | Value |
-|-------|-------|
-| Target | `99.5%` |
-| Rolling window | `30 days` |
+|---|---|
+| Enter time window | `28 days` (default) |
+| Select data source | `grafanacloud-<your-stack>-prom` (auto-selected — this is the Mimir backing your SM metrics) |
+| Query type | **Ratio** card (the other option, **Advanced**, is for custom per-query SLIs) |
+| Success metric | `probe_all_success_sum{job="Workshop Demo"}` |
+| Total metric | `probe_all_success_count{job="Workshop Demo"}` |
+| Grouping | `job` (overwrite the default `job,handler` — SM metrics don't have a `handler` label) |
 
-99.5% is a realistic target for a public endpoint in a workshop environment. A stricter target (99.9%) would be harder to maintain during the lab exercises where you intentionally break the check.
+> Don't wrap the metrics in `sum()` — the wizard auto-aggregates using the Grouping field. If you include `sum()` you'll see a pink banner telling you so; the query still runs, but the UI is asking for bare counters.
 
-Click **Save** to create the SLO.
+Click **Run queries**. A green line at **y=1** appears in the SLI ratio preview chart, confirming your Workshop Demo check has been at 100% success for the window. Click **→ Set target and error budget**.
+
+#### Step 2 of wizard — Set target and error budget
+
+| Field | Value |
+|---|---|
+| Enter target | `99.5` % (default) |
+
+The **Error budget** field auto-calculates to `0.5 %` (100% − target) and a **Remaining error budget** chart previews where that budget stands today over the 28-day window.
+
+Click **→ Add name and description**.
+
+#### Step 3 of wizard — Add name and description
+
+| Field | Value |
+|---|---|
+| SLO name | `Workshop Demo SLO` |
+| SLO description | `Uptime SLO for the Workshop Demo HTTP check` (clear out the placeholder) |
+| Folder | leave the default (`Grafana SLO`) |
+| SLO labels | skip — `team_name` / `service_name` are optional |
+
+Click **→ Add SLO alert rules & assistant investigations**.
+
+#### Step 4 of wizard — SLO Alert Rules & Assistant Investigations
+
+See Step 3 below — this wizard step is where you opt into burn-rate alerts, described in detail there. Tick **Add SLO alert rules and assistant investigations** now, then click **→ Review SLO**.
+
+#### Step 5 of wizard — Review SLO
+
+A full summary page: Information, Service level indicator (with the computed SLI ratio PromQL), Target and error budget, Alert rules. Each section has an **Edit section** button if you need to go back. Click **💾 Save and view all SLOs** at the bottom right.
+
+You land on the Manage SLOs list with **Workshop Demo SLO** as a new row.
 
 ### Step 3: Read the SLO Dashboard
 
@@ -99,62 +122,48 @@ A time series chart showing current burn rate vs. the 1× baseline. The 1× line
 **SLO compliance chart**
 A historical view of how the SLI has compared to the target over the window. Green area = in target, red area = below target. This is the "did we meet our SLO?" chart for past post-mortems or monthly reliability reviews.
 
-### Step 4: Configure Burn Rate Alerts
+### Step 4: Burn Rate Alerts (auto-generated)
 
-A single alert on "SLO breached" is too late — by the time you breach, the budget is gone. Burn rate alerts give you advance warning at two horizons:
+A single alert on "SLO breached" is too late — by the time you breach, the budget is gone. Burn-rate alerts give you advance warning.
 
-**Fast burn alert (page-worthy)**
-Fires when burn rate exceeds 14× for 5 minutes. At 14×, the 30-day budget is exhausted in ~2 days. This warrants immediate investigation.
+**In the current UI you don't configure these manually** — Grafana generates them from the SLO definition. On **Step 4 of the create-SLO wizard** (which you already completed in Step 2 above if you ticked the checkbox), Grafana creates two alert rules automatically:
 
-**Slow burn alert (ticket-worthy)**
-Fires when burn rate exceeds 3× for 60 minutes. At 3×, the budget is exhausted in ~10 days. This is not an emergency but warrants a reliability investigation before the budget runs out.
+**Fast-burn alert rule** — pages you for very serious conditions. Triggers when:
+- Burn rate ≥ **14.4×** averaged over the last **5 minutes AND** over the last **1 hour**, OR
+- Burn rate ≥ **6×** averaged over the last **30 minutes AND** over the last **6 hours**
 
-To add burn rate alerts to your SLO:
+**Slow-burn alert rule** — alerts for ongoing issues that deserve attention but aren't critical. Longer evaluation windows, lower thresholds.
 
-1. From the SLO dashboard, click **Edit SLO** (or navigate back to the SLO list and click Edit)
-2. Find the **Alerting** section
-3. Click **Add alert**
+Both rules use the **multi-window multi-burn-rate** pattern from the Google SRE workbook — the short window catches fast burns; the longer window filters out transient spikes so you don't get paged for a 2-minute blip.
 
-Configure the fast burn alert:
+**If you didn't tick the checkbox** when creating the SLO:
+1. Navigate to the SLO (Alerts & IRM → SLO → Manage SLOs)
+2. Click the three-dot menu on your SLO → **Edit**
+3. Advance to the Alert rules step and tick the checkbox
+4. Re-save
 
-| Field | Value |
-|-------|-------|
-| Alert name | `Workshop Demo — fast burn` |
-| Burn rate threshold | `14` |
-| Window | `5m` |
-| Severity label | `critical` |
-
-Click **Add alert** again and configure the slow burn alert:
-
-| Field | Value |
-|-------|-------|
-| Alert name | `Workshop Demo — slow burn` |
-| Burn rate threshold | `3` |
-| Window | `60m` |
-| Severity label | `warning` |
-
-Save the SLO. Grafana creates the underlying Grafana Alerting rules automatically.
+The underlying alert rules appear in **Alerts & IRM → Alerting → Alert rules** with names like `Workshop Demo SLO - fast burn (error budget)` and route through whatever notification policies you configured in Lab 22.
 
 ### Step 5: Understand the Error Budget Math
 
 Work through a concrete scenario so the numbers feel intuitive.
 
 **Setup:**
-- SLO target: 99.5% over 30 days
+- SLO target: 99.5% over 28 days (the wizard default)
 - Check frequency: 1 minute
-- Total check runs in 30 days: 30 × 24 × 60 = 43,200 runs
+- Total check runs in 28 days: 28 × 24 × 60 = 40,320 runs
 
 **Error budget calculation:**
 - Allowed failure rate: 100% − 99.5% = 0.5%
-- Allowed failures: 43,200 × 0.005 = **216 check failures** (≈ 3.6 hours of consecutive downtime)
+- Allowed failures: 40,320 × 0.005 = **≈ 202 check failures** (≈ 3.4 hours of consecutive downtime)
 
 **Burn scenario:**
 Your check fails continuously for 10 minutes (10 consecutive failed runs).
 
-- Budget consumed: 10 / 216 = **4.6% of monthly budget in 10 minutes**
-- Burn rate during that period: (10 failures / 10 minutes) ÷ (216 failures / 43,200 minutes) = 10 ÷ 0.005 = **200× burn rate**
+- Budget consumed: 10 / 202 = **≈ 5% of the 28-day budget in 10 minutes**
+- Burn rate during that period: (10 failures / 10 minutes) ÷ (202 failures / 40,320 minutes) ≈ **200× burn rate**
 
-A 10-minute outage is relatively minor in absolute terms, but at 200× burn rate, the fast-burn alert fires within seconds. That is exactly the intent — high burn rate means the situation is serious even if the budget percentage consumed looks small.
+A 10-minute outage is relatively minor in absolute terms, but at 200× burn rate the fast-burn alert fires within seconds. That is exactly the intent — high burn rate means the situation is serious even if the budget percentage consumed looks small.
 
 ### Step 6: Error Budget Policies
 

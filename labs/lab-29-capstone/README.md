@@ -203,7 +203,7 @@ You now have two complementary checks: a deep scripted check that validates the 
 
 Your checkout flow is now generating synthetic monitoring data. Turn that into an SLO:
 
-1. Open Grafana → the **SLO** plugin (sidebar search for "SLO", or navigate directly to `/a/grafana-slo-app/`)
+1. Open Grafana → expand **Alerts & IRM** in the sidebar → click **SLO** (or navigate directly to `/a/grafana-slo-app/`)
 2. Click **Create SLO**
 3. Configure:
    - **Name:** `Checkout Flow SLO`
