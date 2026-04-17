@@ -132,7 +132,7 @@ The output looks different from a local run:
 
   execution: cloud
      script: scripts/starters/lab-09-starter.js
-     output: https://app.grafana.com/a/k6-app/runs/12345678
+     output: https://<your-stack>.grafana.net/a/k6-app/runs/<run-id>
 
   scenarios: (100.00%) 1 scenario, 2 max VUs, 1m0s max duration (incl. graceful stop)
            * default: 2 looping VUs for 30s (gracefulStop: 30s)
@@ -145,7 +145,7 @@ The output looks different from a local run:
      http_req_duration..............: avg=4.1ms  ...
      ...
 
-  Run your test results here: https://app.grafana.com/a/k6-app/runs/12345678
+  Run your test results here: https://<your-stack>.grafana.net/a/k6-app/runs/<run-id>
 ```
 
 Key differences from local:
