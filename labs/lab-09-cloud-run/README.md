@@ -49,6 +49,8 @@ echo 'export K6_CLOUD_TOKEN=<paste-your-token-here>' >> ~/.bashrc
 source ~/.bashrc
 ```
 
+> **Confirm you have a default k6 project.** Navigate to **Testing & synthetics → Performance → Projects** in the Grafana Cloud UI. You should see at least one project — typically **Default project**. If this list is empty, create a new project (click **+ Create new project**) before running `k6 cloud run`; otherwise the CLI fails with `(400/E2) No valid default project found.`
+
 ### Step 2: Examine the Starter Script
 
 Open the starter script to understand what it tests:

@@ -112,23 +112,19 @@ If `https://httpbin.org` is unreachable from your workstation, try running `curl
 
 In your Grafana Cloud instance, navigate to **Testing & synthetics → Synthetics → Checks** in the left sidebar.
 
-Click **+ Create new check**. On the check-type picker, click the **Scripted** card.
+Click **+ Create new check**. On the check-type picker, click the **Scripted** card. The form opens on a 5-step wizard: **Script → Uptime → Labels → Execution → Alerting**.
 
-Fill in the configuration:
+On the **Script** step, fill in:
 
 | Field | Value |
 |---|---|
-| Job name | `Multi-Step API Workflow` |
-| Frequency | `5 minutes` |
-| Timeout | `60s` |
+| **Job name** | `Multi-Step API Workflow` |
+| **Instance** | `https://httpbin.org` (the primary target — follows Prometheus `job`/`instance` convention) |
+| **Script** | Select-all + delete the pre-populated k6-testing template, then paste the full content of `scripts/solutions/lab-13-solution.js` (or your starter, if you've been editing along) |
 
-The 60-second timeout is important for multi-step scripts. With three steps each sleeping 1 second plus network time, a single execution easily takes 5–10 seconds. The default timeout of 10s is too short for a meaningful workflow check.
+Advance through **Uptime** (defaults fine) and **Labels** (skip). On **Execution**, select 2–3 probe locations — for a workflow check, 2 locations is sufficient since you are testing workflow correctness, not geographic distribution. Click the **5m** frequency pill.
 
-Under **Script**, paste the full contents of `scripts/starters/lab-13-starter.js`. Some SM UI versions offer a file upload button — use whichever method is available.
-
-Under **Probe locations**, select 2–3 locations. For a workflow check, 2 locations is sufficient — you are testing workflow correctness, not geographic latency distribution.
-
-Review the configuration, then click **Save**.
+Skip **Alerting** and click **Save**.
 
 ### Step 4: Run an Immediate Test
 

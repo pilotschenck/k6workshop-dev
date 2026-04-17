@@ -98,12 +98,9 @@ version: "3.8"
 services:
   private-probe:
     image: grafana/synthetic-monitoring-agent:latest
-    environment:
-      SM_ACCESS_TOKEN: "your-token-here"
-      # Use the region-specific gRPC address from the Probe setup modal.
-      # Example (do NOT copy verbatim — yours may be a different region):
-      #   synthetic-monitoring-grpc-us-west-0.grafana.net:443
-      SM_API_SERVER_ADDRESS: "your-api-server-here:443"
+    command:
+      - -api-token=your-token-here
+      - -api-server-address=your-api-server-here:443
     networks:
       - k6workshop
     restart: unless-stopped
@@ -113,6 +110,8 @@ networks:
     name: infra_k6workshop
     external: true
 ```
+
+> **Why CLI flags, not environment variables?** The `synthetic-monitoring-agent` binary reads its config from CLI flags only. If you pass `SM_ACCESS_TOKEN` / `SM_API_SERVER_ADDRESS` as env vars (as older docs sometimes show), the agent silently ignores them and logs `invalid API token` on every poll. Use the `command:` block above.
 
 **Why the network configuration?**
 

@@ -118,8 +118,8 @@ A contact point defines where notifications go. You will set up an email contact
 Notification policies route alerts to contact points based on label matchers. Think of it as routing rules: "if an alert has these labels, send it to this contact point."
 
 1. On the same **Notification configuration** page, switch to the **Notification policies** tab.
-2. You will see the **Default policy** at the top — this is the catch-all that receives any alert not matched by a more specific rule
-3. Click **Add nested policy** under the default
+2. You will see the **Default policy** at the top (currently grouped by `grafana_folder, alertname`, delivered to an `empty` contact point) — this is the catch-all that receives any alert not matched by a more specific rule
+3. Click **+ Add route** on the Default policy row (this is the current UI label; older docs call it "Add nested policy")
 4. Set the matcher: `severity = warning`
 5. Contact point: select **Workshop Email**
 6. Click **Save policy**
